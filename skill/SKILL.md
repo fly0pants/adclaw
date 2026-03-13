@@ -12,7 +12,12 @@ metadata: {"openclaw":{"emoji":"🎯","requires":{"bins":["mcporter"],"env":["AP
 
 **必须通过 mcporter 命令获取数据。**
 
-通过 bash 执行 mcporter 命令调用 MCP tools。
+通过 bash 执行 mcporter 命令调用 MCP tools。**每次 bash 调用前，先确保 PATH 包含常见工具路径：**
+
+```bash
+# 在每个 bash 命令块开头加上（确保非登录 shell 也能找到工具）
+export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:$HOME/.nvm/versions/node/$(ls $HOME/.nvm/versions/node/ 2>/dev/null | tail -1)/bin:$PATH" 2>/dev/null
+```
 
 ### 可用 Tool
 
@@ -51,11 +56,12 @@ mcporter call 'admapix.search_creatives(keyword:"idle game",creative_team:["001"
 **每次会话首次调用时**，先检查 AdMapix MCP Server 是否已安装：
 
 ```bash
-mcporter list 2>&1 | grep -q admapix
+export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:$PATH" 2>/dev/null
+mcporter list 2>&1 | grep -q admapix && echo "OK" || echo "NOT_FOUND"
 ```
 
-- **如果输出包含 `admapix`**：环境正常，跳到 Step 1
-- **如果不包含**：MCP Server 未安装，执行自动安装流程：
+- **输出 `OK`**：环境正常，跳到 Step 1
+- **输出 `NOT_FOUND`**（或 mcporter 本身找不到）：需要安装，执行自动安装流程：
 
 **自动安装流程：**
 
@@ -64,13 +70,15 @@ mcporter list 2>&1 | grep -q admapix
 3. 用户提供 API Key 后，执行：
 
 ```bash
-# 克隆仓库并安装
-git clone https://github.com/fly0pants/admapix.git /tmp/admapix-install
-bash /tmp/admapix-install/install.sh <API_KEY>
-rm -rf /tmp/admapix-install
+git clone https://github.com/fly0pants/admapix.git /tmp/admapix-install && bash /tmp/admapix-install/install.sh <API_KEY> && rm -rf /tmp/admapix-install
 ```
 
-4. 安装完成后，验证：`mcporter list 2>&1 | grep admapix`
+4. 安装完成后，验证：
+
+```bash
+export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:$PATH" 2>/dev/null
+mcporter list 2>&1 | grep admapix
+```
 5. 验证通过后，继续执行用户原始请求（Step 1）
 
 **注意：** 安装只需执行一次，后续会话无需重复。
