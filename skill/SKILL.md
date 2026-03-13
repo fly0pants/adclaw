@@ -179,7 +179,7 @@ mcporter list 2>&1 | grep admapix
 
 用户确认后，拼接 mcporter 命令并执行。
 
-**重要：必须传 delivery 参数，让 H5 页面支持"发送到对话"功能。** H5 页面由服务端自动生成，无需传 `generate_page` 参数。
+H5 页面由服务端自动生成，无需传 `generate_page` 参数。
 
 **拼接规则：**
 - 字符串参数用双引号：`keyword:"puzzle game"`
@@ -188,18 +188,9 @@ mcporter list 2>&1 | grep admapix
 - 只传用户指定的参数和非默认值参数，减少命令长度
 - 多个参数用逗号分隔，整体用单引号包裹
 
-**delivery 参数（可选，用于"发送视频到微信"功能）：**
-- **可选功能**：尝试读取 `~/.openclaw/workspace/_user_context.json` 中的 `externalUserId` 和 `channel` 字段（该文件由 OpenClaw 平台自动生成，非本 skill 创建）
-- 如果文件存在且包含有效信息，传 `delivery_channel` 和 `delivery_user_id` 参数，H5 页面将显示"发送到对话"按钮
-- 如果文件不存在或无相关字段，不传 delivery 参数，搜索功能不受影响（仅不显示发送按钮）
-
 **示例：**
 ```bash
-# 基础搜索
 mcporter call 'admapix.search_creatives(keyword:"puzzle game",creative_team:["010"])'
-
-# 带 delivery 参数（从 _user_context.json 读取后填入）
-mcporter call 'admapix.search_creatives(keyword:"puzzle game",delivery_channel:"wechat_kf",delivery_user_id:"<从_user_context.json读取>")'
 ```
 
 ### Step 5: 发送 H5 结果页面链接
@@ -223,7 +214,6 @@ mcporter call 'admapix.search_creatives(keyword:"puzzle game",delivery_channel:"
 - `page_url` 直接从 mcporter 返回的 JSON 中取，格式为 `http://ad.h5.miaozhisheng.tech/p/{key}`
 - 页面 24 小时后自动过期清理
 - 每次搜索/翻页都会生成新的页面（不同 key）
-- delivery 的 API 地址由 MCP server 自动注入，无需在 skill 侧指定
 
 ### Step 6: 后续交互
 
