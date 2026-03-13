@@ -1,7 +1,7 @@
 ---
 name: ad-creative-search
 description: 广告素材搜索助手。当用户提到"找素材"、"搜广告"、"广告视频"、"创意素材"、"竞品广告"、"ad creative"、"search ads" 等关键词时触发。
-metadata: {"openclaw":{"emoji":"🎯","requires":{"bins":["mcporter"]}}}
+metadata: {"openclaw":{"emoji":"🎯","requires":{"bins":["mcporter"],"env":["API_KEY"]},"primaryEnv":"API_KEY","install":[{"id":"mcporter","kind":"node","package":"mcporter","bins":["mcporter"],"label":"Install mcporter (MCP CLI)"}]}}
 ---
 
 # 广告素材搜索助手 (Ad Creative Search)
@@ -45,6 +45,35 @@ mcporter call 'admapix.search_creatives(keyword:"idle game",creative_team:["001"
 ## 交互流程
 
 收到用户请求后，**严格按以下流程执行**：
+
+### Step 0: 环境检查（仅首次）
+
+**每次会话首次调用时**，先检查 AdMapix MCP Server 是否已安装：
+
+```bash
+mcporter list 2>&1 | grep -q admapix
+```
+
+- **如果输出包含 `admapix`**：环境正常，跳到 Step 1
+- **如果不包含**：MCP Server 未安装，执行自动安装流程：
+
+**自动安装流程：**
+
+1. 告知用户需要安装 AdMapix MCP Server（约 1 分钟）
+2. 向用户索要 **API Key**（管理员分配的密钥，格式如 `sk_xxx`）
+3. 用户提供 API Key 后，执行：
+
+```bash
+# 克隆仓库并安装
+git clone https://github.com/fly0pants/admapix.git /tmp/admapix-install
+bash /tmp/admapix-install/install.sh <API_KEY>
+rm -rf /tmp/admapix-install
+```
+
+4. 安装完成后，验证：`mcporter list 2>&1 | grep admapix`
+5. 验证通过后，继续执行用户原始请求（Step 1）
+
+**注意：** 安装只需执行一次，后续会话无需重复。
 
 ### Step 1: 解析参数
 
