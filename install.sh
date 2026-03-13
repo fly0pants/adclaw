@@ -7,6 +7,15 @@
 #
 set -euo pipefail
 
+# ── 确保 Homebrew/常见路径在 PATH 中（SSH 非登录 shell 可能缺失）──
+for p in /opt/homebrew/bin /opt/homebrew/sbin /usr/local/bin; do
+  [[ -d "$p" && ":$PATH:" != *":$p:"* ]] && export PATH="$p:$PATH"
+done
+# 加载 brew shellenv（补充 HOMEBREW_PREFIX 等变量）
+if command -v brew &>/dev/null; then
+  eval "$(brew shellenv 2>/dev/null)" || true
+fi
+
 API_KEY="${1:-}"
 if [ -z "$API_KEY" ]; then
   echo "用法: bash install.sh <API_KEY>"
@@ -82,6 +91,9 @@ else
     *) error "不支持的系统: $(uname -s)" ;;
   esac
 
+  # 刷新 PATH（brew install 后 python3 可能在新路径）
+  hash -r 2>/dev/null
+  eval "$(brew shellenv 2>/dev/null)" || true
   PYTHON_BIN=$(find_python) || error "Python 安装后仍未检测到，请检查 PATH"
   info "Python 安装成功: $PYTHON_BIN"
 fi
@@ -117,6 +129,13 @@ else
     *) error "不支持的系统" ;;
   esac
 
+  # 刷新 PATH（brew install 后 node 可能在新路径）
+  hash -r 2>/dev/null
+  eval "$(brew shellenv 2>/dev/null)" || true
+  # brew link 的 node@22 可能在单独路径
+  for p in /opt/homebrew/opt/node@22/bin /opt/homebrew/opt/node/bin /usr/local/opt/node/bin; do
+    [[ -d "$p" && ":$PATH:" != *":$p:"* ]] && export PATH="$p:$PATH"
+  done
   command -v node &>/dev/null || error "Node.js 安装失败"
   info "Node.js 安装成功: $(node --version)"
 fi
@@ -131,6 +150,10 @@ if command -v mcporter &>/dev/null; then
 else
   warn "未检测到 mcporter，开始安装..."
   npm install -g mcporter
+  # npm 全局 bin 路径可能不在 PATH 中
+  NPM_GLOBAL_BIN="$(npm config get prefix 2>/dev/null)/bin"
+  [[ -d "$NPM_GLOBAL_BIN" && ":$PATH:" != *":$NPM_GLOBAL_BIN:"* ]] && export PATH="$NPM_GLOBAL_BIN:$PATH"
+  hash -r 2>/dev/null
   command -v mcporter &>/dev/null || error "mcporter 安装失败，请检查 npm 全局安装路径是否在 PATH 中"
   info "mcporter 安装成功"
 fi
