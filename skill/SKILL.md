@@ -61,21 +61,81 @@ mcporter list 2>&1 | grep -q admapix && echo "OK" || echo "NOT_FOUND"
 ```
 
 - **输出 `OK`**：环境正常，跳到 Step 1
-- **输出 `NOT_FOUND`**（或 mcporter 本身找不到）：MCP Server 未安装，**向用户发送以下安装指引**：
+- **输出 `NOT_FOUND`**（或 mcporter 本身找不到）：MCP Server 未安装，执行以下安装流程：
+
+**0a. 向用户索要 API Key：**
 
 ```
-AdMapix MCP Server 尚未安装，请在终端中执行以下命令完成安装（约 1 分钟）：
-
-git clone https://github.com/fly0pants/admapix.git /tmp/admapix-install
-bash /tmp/admapix-install/install.sh <你的API_KEY>
-rm -rf /tmp/admapix-install
-
-API Key 可在官网获取：https://admapix.miaozhisheng.tech
-
-安装完成后，回来告诉我就可以开始搜索了。
+AdMapix MCP Server 尚未配置，需要先完成安装。
+请提供你的 API Key（格式如 sk_xxx，可在 https://admapix.miaozhisheng.tech 获取）
 ```
 
-**不要自动执行安装命令**，等用户确认安装完成后，重新验证并继续。
+**0b. 用户提供 API Key 后，检测 Python 3.10+：**
+
+```bash
+export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:$PATH" 2>/dev/null
+python3 -c "import sys; v=sys.version_info; print(f'{v.major}.{v.minor}'); exit(0 if v>=(3,10) else 1)" 2>/dev/null
+```
+
+如果 Python 不满足要求，提示用户安装：`brew install python@3.12`（macOS）或 `sudo apt-get install python3 python3-venv`（Linux）
+
+**0c. 下载 server.py 并创建虚拟环境：**
+
+```bash
+export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:$PATH" 2>/dev/null
+INSTALL_DIR="$HOME/.admapix"
+mkdir -p "$INSTALL_DIR"
+
+# 下载 MCP server 文件（单文件，可审计）
+curl -fsSL https://raw.githubusercontent.com/fly0pants/admapix/main/server.py -o "$INSTALL_DIR/server.py"
+curl -fsSL https://raw.githubusercontent.com/fly0pants/admapix/main/requirements.txt -o "$INSTALL_DIR/requirements.txt"
+
+# 创建虚拟环境并安装依赖
+python3 -m venv "$INSTALL_DIR/.venv"
+"$INSTALL_DIR/.venv/bin/pip" install -q -r "$INSTALL_DIR/requirements.txt"
+
+echo "DONE"
+```
+
+**0d. 配置 mcporter（将 API Key 替换为用户提供的值）：**
+
+```bash
+export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:$PATH" 2>/dev/null
+INSTALL_DIR="$HOME/.admapix"
+CONFIG="$HOME/.mcporter/mcporter.json"
+mkdir -p "$(dirname "$CONFIG")"
+
+python3 -c "
+import json, os
+path = '$CONFIG'
+cfg = {}
+if os.path.exists(path):
+    with open(path) as f:
+        cfg = json.load(f)
+servers = cfg.get('mcpServers', {})
+servers['admapix'] = {
+    'command': '$INSTALL_DIR/.venv/bin/python3 $INSTALL_DIR/server.py',
+    'env': {'API_KEY': '<API_KEY>'}
+}
+cfg['mcpServers'] = servers
+cfg.setdefault('imports', [])
+with open(path, 'w') as f:
+    json.dump(cfg, f, indent=2)
+    f.write('\n')
+"
+echo "DONE"
+```
+
+**0e. 验证安装：**
+
+```bash
+export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:$PATH" 2>/dev/null
+mcporter list 2>&1 | grep admapix
+```
+
+验证通过后告知用户安装成功，继续执行原始搜索请求（Step 1）。
+
+**注意：** 安装只需执行一次，后续会话无需重复。`<API_KEY>` 需替换为用户实际提供的值。
 
 ### Step 1: 解析参数
 
