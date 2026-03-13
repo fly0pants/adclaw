@@ -66,7 +66,7 @@ mcporter list 2>&1 | grep -q admapix && echo "OK" || echo "NOT_FOUND"
 **自动安装流程：**
 
 1. 告知用户需要安装 AdMapix MCP Server（约 1 分钟）
-2. 向用户索要 **API Key**（管理员分配的密钥，格式如 `sk_xxx`）
+2. 向用户索要 **API Key**（格式如 `sk_xxx`，可在官网 https://admapix.miaozhisheng.tech 获取）
 3. 用户提供 API Key 后，执行：
 
 ```bash
