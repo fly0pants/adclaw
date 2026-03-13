@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "admapix-mcp"
+name = "adclaw-mcp"
 version = "1.0.0"
-description = "AdMapix MCP Server — AI-powered ad creative search"
+description = "AdClaw MCP Server — AI-powered ad creative search"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
@@ -30,8 +30,8 @@ dependencies = [
 ]
 
 [project.scripts]
-admapix-mcp = "admapix_mcp.__main__:main"
+adclaw-mcp = "adclaw_mcp.__main__:main"
 
 [project.urls]
-Homepage = "https://admapix.miaozhisheng.tech"
-Repository = "https://github.com/fly0pants/admapix"
+Homepage = "https://adclaw.miaozhisheng.tech"
+Repository = "https://github.com/fly0pants/adclaw"

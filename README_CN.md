@@ -1,8 +1,8 @@
-<h1 align="center">🎯 AdMapix</h1>
+<h1 align="center">🎯 AdClaw</h1>
 
 <p align="center">
   <strong>AI 驱动的广告素材情报 — 搜索、发现、送达。</strong><br>
-  <sub><b>Ad</b>(广告) + <b>Ma</b>(Map/Material) + <b>Pix</b>(Pixel) — 广告素材，像素级洞察。</sub>
+  <sub><b>Ad</b>(广告) + <b>Claw</b>(OpenClaw) — AI 驱动的广告素材情报。</sub>
 </p>
 
 <p align="center">
@@ -23,9 +23,9 @@
 
 ---
 
-## 🤔 AdMapix 是什么？
+## 🤔 AdClaw 是什么？
 
-AdMapix 是一个 **MCP Server + OpenClaw Skill**，让 AI 智能体通过自然语言搜索竞品广告素材。
+AdClaw 是一个 **MCP Server + OpenClaw Skill**，让 AI 智能体通过自然语言搜索竞品广告素材。
 
 只需对你的 AI 助手说出想搜的内容，即可获得包含视频、图片、数据指标的 H5 结果页面，还能一键将视频发送到微信对话。
 
@@ -92,15 +92,15 @@ AdMapix 是一个 **MCP Server + OpenClaw Skill**，让 AI 智能体通过自然
 ### Mac / Linux
 
 ```bash
-git clone https://github.com/fly0pants/admapix.git
-bash admapix/install.sh <你的API_KEY>
+git clone https://github.com/fly0pants/adclaw.git
+bash adclaw/install.sh <你的API_KEY>
 ```
 
 ### Windows (PowerShell)
 
 ```powershell
-git clone https://github.com/fly0pants/admapix.git
-powershell -ExecutionPolicy Bypass -File admapix\install.ps1 -ApiKey <你的API_KEY>
+git clone https://github.com/fly0pants/adclaw.git
+powershell -ExecutionPolicy Bypass -File adclaw\install.ps1 -ApiKey <你的API_KEY>
 ```
 
 安装脚本自动完成：
@@ -110,7 +110,7 @@ powershell -ExecutionPolicy Bypass -File admapix\install.ps1 -ApiKey <你的API_
 | 1 | 检测或安装 **Python 3.10+** |
 | 2 | 检测或安装 **Node.js** |
 | 3 | 检测或安装 **mcporter** |
-| 4 | 安装 MCP Server 到 `~/.admapix/` |
+| 4 | 安装 MCP Server 到 `~/.adclaw/` |
 | 5 | 配置 `~/.mcporter/mcporter.json` |
 | 6 | 安装 OpenClaw Skill 到 `~/.openclaw/skills/` |
 
@@ -141,8 +141,8 @@ powershell -ExecutionPolicy Bypass -File admapix\install.ps1 -ApiKey <你的API_
 1. **安装依赖**
 
 ```bash
-python3 -m venv ~/.admapix/.venv
-~/.admapix/.venv/bin/pip install mcp httpx pydantic
+python3 -m venv ~/.adclaw/.venv
+~/.adclaw/.venv/bin/pip install mcp httpx pydantic
 ```
 
 2. **配置 `~/.mcporter/mcporter.json`**
@@ -150,8 +150,8 @@ python3 -m venv ~/.admapix/.venv
 ```json
 {
   "mcpServers": {
-    "admapix": {
-      "command": "~/.admapix/.venv/bin/python3 ~/.admapix/server.py",
+    "adclaw": {
+      "command": "~/.adclaw/.venv/bin/python3 ~/.adclaw/server.py",
       "env": {
         "API_KEY": "<你的API_KEY>"
       }
@@ -175,9 +175,9 @@ cp -r skill/ ~/.openclaw/skills/ad-creative-search/
 ```
 用户（微信 / 智能体）
   → AI 智能体（OpenClaw）
-    → mcporter call 'admapix.search_creatives(...)'
+    → mcporter call 'adclaw.search_creatives(...)'
       → MCP Server（Python, STDIO）
-        → AdMapix API
+        → AdClaw API
           → H5 结果页面 ← 用户在浏览器中查看
           → 视频送达    ← 用户在微信中接收
 ```
@@ -192,7 +192,7 @@ MIT License — 自由使用、修改和分发。
 
 <div align="center">
 
-**AdMapix** — *广告情报，触手可及。*
+**AdClaw** — *广告情报，触手可及。*
 
 Built by [妙智盛](https://miaozhisheng.tech/)
 

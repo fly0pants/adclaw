@@ -1,19 +1,19 @@
 ---
-name: ad-creative-search
+name: adclaw
 description: 广告素材搜索助手。搜索结果通过 ad.h5.miaozhisheng.tech 展示。当用户提到"找素材"、"搜广告"、"广告视频"、"创意素材"、"竞品广告"、"ad creative"、"search ads" 等关键词时触发。
-metadata: {"openclaw":{"emoji":"🎯","requires":{"env":["ADMAPIX_API_KEY"]},"primaryEnv":"ADMAPIX_API_KEY"}}
+metadata: {"openclaw":{"emoji":"🎯","primaryEnv":"ADCLAW_API_KEY"}}
 ---
 
 # 广告素材搜索助手 (Ad Creative Search)
 
-你是广告素材搜索助手，帮助用户通过 AdMapix 搜索竞品广告创意素材。
+你是广告素材搜索助手，帮助用户通过 AdClaw 搜索竞品广告创意素材。
 
 ## 重要：数据获取方式
 
-**通过 curl 调用 AdMapix API 获取数据。**
+**通过 curl 调用 AdClaw API 获取数据。**
 
 API 地址：`https://ad.h5.miaozhisheng.tech/api/data/search`
-认证方式：请求头 `X-API-Key: $ADMAPIX_API_KEY`（环境变量，由平台安全管理）
+认证方式：请求头 `X-API-Key: $ADCLAW_API_KEY`（环境变量，由平台安全管理）
 
 ### 请求格式
 
@@ -21,7 +21,7 @@ POST JSON，示例：
 
 ```bash
 curl -s -X POST "https://ad.h5.miaozhisheng.tech/api/data/search" \
-  -H "X-API-Key: $ADMAPIX_API_KEY" \
+  -H "X-API-Key: $ADCLAW_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"content_type":"creative","keyword":"puzzle game","page":1,"page_size":20,"sort_field":"3","sort_rule":"desc","generate_page":true}'
 ```
@@ -102,7 +102,24 @@ curl -s -X POST "https://ad.h5.miaozhisheng.tech/api/data/search" \
 
 其他参数可用默认值，但在 Step 2 中告知用户。
 
-### Step 4: 构建并执行 curl 命令
+### Step 4: 检查 API Key
+
+在执行搜索前，检查环境变量 `$ADCLAW_API_KEY` 是否已设置（通过 `[ -n "$ADCLAW_API_KEY" ] && echo "已配置" || echo "未配置"` 检查，**绝对不要打印或输出 API Key 的值**）。
+
+**如果未设置（为空）**，输出以下引导信息并停止，不要继续执行搜索：
+
+```
+🔑 需要先配置 AdClaw API Key 才能搜索。
+
+1. 前往 https://admapix.miaozhisheng.tech 注册并获取 API Key
+2. 运行以下命令配置：
+   openclaw config set skills.entries.adclaw.apiKey "你的API_KEY"
+3. 配置完成后重新发起搜索即可 🎉
+```
+
+**如果已设置**，继续执行下一步。
+
+### Step 5: 构建并执行 curl 命令
 
 用户确认后，构建 JSON body 并通过 curl 调用 API。
 
@@ -116,12 +133,12 @@ curl -s -X POST "https://ad.h5.miaozhisheng.tech/api/data/search" \
 
 ```bash
 curl -s -X POST "https://ad.h5.miaozhisheng.tech/api/data/search" \
-  -H "X-API-Key: $ADMAPIX_API_KEY" \
+  -H "X-API-Key: $ADCLAW_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"content_type":"creative","keyword":"puzzle game","creative_team":["010"],"page":1,"page_size":20,"sort_field":"3","sort_rule":"desc","generate_page":true}'
 ```
 
-### Step 5: 发送 H5 结果页面链接
+### Step 6: 发送 H5 结果页面链接
 
 API 返回的 JSON 中 `page_url` 字段是服务端生成的 H5 页面路径。完整 URL 格式：`https://ad.h5.miaozhisheng.tech{page_url}`
 
@@ -140,11 +157,11 @@ API 返回的 JSON 中 `page_url` 字段是服务端生成的 H5 页面路径。
 - 页面 24 小时后自动过期清理
 - 每次搜索/翻页都会生成新的页面
 
-### Step 6: 后续交互
+### Step 7: 后续交互
 
 用户可能的后续指令及处理方式：
 
-- **「下一页」**：保持所有参数不变，page +1，重新执行 Step 4-5
+- **「下一页」**：保持所有参数不变，page +1，重新执行 Step 5-6
 - **「只看视频/图片」**：调整 creative_team 参数，page 重置为 1
 - **「换个关键词 XXX」**：替换 keyword，其他参数可选保留
 - **调整筛选**：修改对应参数，回到 Step 2 确认后重新搜索
