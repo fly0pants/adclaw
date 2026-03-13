@@ -112,6 +112,7 @@ The installer automatically:
 | 3 | Detects or installs **mcporter** |
 | 4 | Sets up MCP Server in `~/.admapix/` |
 | 5 | Configures `~/.mcporter/mcporter.json` |
+| 6 | Installs OpenClaw Skill to `~/.openclaw/skills/` |
 
 **That's it.** Start chatting with your agent and search away.
 

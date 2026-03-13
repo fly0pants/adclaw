@@ -175,6 +175,28 @@ with open(path, 'w') as f:
 & $VenvPython -c $configScript
 Write-Info "mcporter 配置已写入: $McporterConfig"
 
+# ── Step 6: 安装 Skill ───────────────────────────────────────
+
+Write-Host ""
+Write-Host "── [6/6] 安装 OpenClaw Skill ──"
+
+$SkillDir = Join-Path $env:USERPROFILE ".openclaw\skills\ad-creative-search"
+$SkillSrc = Join-Path $ScriptDir "skill"
+if (Test-Path $SkillSrc) {
+    if (-not (Test-Path $SkillDir)) { New-Item -ItemType Directory -Path $SkillDir -Force | Out-Null }
+    Copy-Item (Join-Path $SkillSrc "*") $SkillDir -Recurse -Force
+    # Copy references subdirectory
+    $RefSrc = Join-Path $SkillSrc "references"
+    if (Test-Path $RefSrc) {
+        $RefDst = Join-Path $SkillDir "references"
+        if (-not (Test-Path $RefDst)) { New-Item -ItemType Directory -Path $RefDst -Force | Out-Null }
+        Copy-Item (Join-Path $RefSrc "*") $RefDst -Recurse -Force
+    }
+    Write-Info "Skill 已安装: $SkillDir"
+} else {
+    Write-Warn "未找到 skill 目录，跳过 Skill 安装"
+}
+
 # ── 完成 ─────────────────────────────────────────────────────
 
 Write-Host ""
@@ -182,8 +204,9 @@ Write-Host "══════════════════════�
 Write-Host "  安装完成！" -ForegroundColor Cyan
 Write-Host "══════════════════════════════════════" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "  安装目录:  $InstallDir"
-Write-Host "  配置文件:  $McporterConfig"
+Write-Host "  MCP Server:  $InstallDir"
+Write-Host "  mcporter:    $McporterConfig"
+Write-Host "  Skill:       $SkillDir"
 Write-Host ""
 Write-Host "  现在可以通过 OpenClaw 使用"
 Write-Host "  「搜广告」「找素材」等指令了。"

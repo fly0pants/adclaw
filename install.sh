@@ -186,6 +186,21 @@ with open(path, 'w') as f:
 "
 info "mcporter 配置已写入: $MCPORTER_CONFIG"
 
+# ── Step 6: 安装 Skill ───────────────────────────────────────
+
+echo ""
+echo "── [6/6] 安装 OpenClaw Skill ──"
+
+SKILL_DIR="$HOME/.openclaw/skills/ad-creative-search"
+if [ -d "$SCRIPT_DIR/skill" ]; then
+  mkdir -p "$SKILL_DIR"
+  cp -r "$SCRIPT_DIR/skill/"* "$SKILL_DIR/"
+  info "Skill 已安装: $SKILL_DIR"
+else
+  warn "未找到 skill 目录，跳过 Skill 安装"
+  echo "  如需手动安装: cp -r skill/ ~/.openclaw/skills/ad-creative-search/"
+fi
+
 # ── 完成 ─────────────────────────────────────────────────────
 
 echo ""
@@ -193,8 +208,9 @@ echo "════════════════════════�
 echo "  安装完成！"
 echo "══════════════════════════════════════"
 echo ""
-echo "  安装目录:  $INSTALL_DIR"
-echo "  配置文件:  $MCPORTER_CONFIG"
+echo "  MCP Server:  $INSTALL_DIR"
+echo "  mcporter:    $MCPORTER_CONFIG"
+echo "  Skill:       $SKILL_DIR"
 echo ""
 echo "  现在可以通过 OpenClaw 使用"
 echo "  「搜广告」「找素材」等指令了。"

@@ -112,6 +112,7 @@ powershell -ExecutionPolicy Bypass -File admapix\install.ps1 -ApiKey <你的API_
 | 3 | 检测或安装 **mcporter** |
 | 4 | 安装 MCP Server 到 `~/.admapix/` |
 | 5 | 配置 `~/.mcporter/mcporter.json` |
+| 6 | 安装 OpenClaw Skill 到 `~/.openclaw/skills/` |
 
 **搞定。** 对你的 AI 助手说「搜广告」就可以用了。
 
