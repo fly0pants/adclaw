@@ -1,7 +1,7 @@
 ---
 name: ad-creative-search
 description: 广告素材搜索助手。当用户提到"找素材"、"搜广告"、"广告视频"、"创意素材"、"竞品广告"、"ad creative"、"search ads" 等关键词时触发。
-metadata: {"openclaw":{"emoji":"🎯","requires":{"bins":["mcporter"],"env":["API_KEY"]},"primaryEnv":"API_KEY","install":[{"id":"mcporter","kind":"node","package":"mcporter","bins":["mcporter"],"label":"Install mcporter (MCP CLI)"}]}}
+metadata: {"openclaw":{"emoji":"🎯","requires":{"bins":["mcporter"],"env":["API_KEY"],"config":["workspace/_user_context.json"]},"primaryEnv":"API_KEY","install":[{"id":"mcporter","kind":"node","package":"mcporter","bins":["mcporter"],"label":"Install mcporter (MCP CLI)"}]}}
 ---
 
 # 广告素材搜索助手 (Ad Creative Search)
@@ -61,27 +61,21 @@ mcporter list 2>&1 | grep -q admapix && echo "OK" || echo "NOT_FOUND"
 ```
 
 - **输出 `OK`**：环境正常，跳到 Step 1
-- **输出 `NOT_FOUND`**（或 mcporter 本身找不到）：需要安装，执行自动安装流程：
+- **输出 `NOT_FOUND`**（或 mcporter 本身找不到）：MCP Server 未安装，**向用户发送以下安装指引**：
 
-**自动安装流程：**
+```
+AdMapix MCP Server 尚未安装，请在终端中执行以下命令完成安装（约 1 分钟）：
 
-1. 告知用户需要安装 AdMapix MCP Server（约 1 分钟）
-2. 向用户索要 **API Key**（格式如 `sk_xxx`，可在官网 https://admapix.miaozhisheng.tech 获取）
-3. 用户提供 API Key 后，执行：
+git clone https://github.com/fly0pants/admapix.git /tmp/admapix-install
+bash /tmp/admapix-install/install.sh <你的API_KEY>
+rm -rf /tmp/admapix-install
 
-```bash
-git clone https://github.com/fly0pants/admapix.git /tmp/admapix-install && bash /tmp/admapix-install/install.sh <API_KEY> && rm -rf /tmp/admapix-install
+API Key 可在官网获取：https://admapix.miaozhisheng.tech
+
+安装完成后，回来告诉我就可以开始搜索了。
 ```
 
-4. 安装完成后，验证：
-
-```bash
-export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:$PATH" 2>/dev/null
-mcporter list 2>&1 | grep admapix
-```
-5. 验证通过后，继续执行用户原始请求（Step 1）
-
-**注意：** 安装只需执行一次，后续会话无需重复。
+**不要自动执行安装命令**，等用户确认安装完成后，重新验证并继续。
 
 ### Step 1: 解析参数
 
@@ -151,10 +145,10 @@ mcporter list 2>&1 | grep admapix
 - 只传用户指定的参数和非默认值参数，减少命令长度
 - 多个参数用逗号分隔，整体用单引号包裹
 
-**delivery 参数来源：**
-- 先读取 `~/.openclaw/workspace/_user_context.json` 获取当前用户信息（`externalUserId`、`channel`）
-- 如果文件存在，传 `delivery_channel` 和 `delivery_user_id` 参数
-- 如果文件不存在则不传 delivery 相关参数（H5 页面中"发送到对话"按钮不会显示）
+**delivery 参数（可选，用于"发送视频到微信"功能）：**
+- 读取 `~/.openclaw/workspace/_user_context.json` 中的 `externalUserId` 和 `channel` 字段（已在 metadata 中声明 `requires.config`）
+- 如果文件存在且包含有效信息，传 `delivery_channel` 和 `delivery_user_id` 参数，H5 页面将显示"发送到对话"按钮
+- 如果文件不存在或无相关字段，不传 delivery 参数，搜索功能不受影响（仅不显示发送按钮）
 
 **示例：**
 ```bash
