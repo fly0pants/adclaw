@@ -1,7 +1,7 @@
 ---
 name: ad-creative-search
 description: 广告素材搜索助手。当用户提到"找素材"、"搜广告"、"广告视频"、"创意素材"、"竞品广告"、"ad creative"、"search ads" 等关键词时触发。
-metadata: {"openclaw":{"emoji":"🎯","requires":{"bins":["mcporter"],"env":["API_KEY"],"config":["workspace/_user_context.json"]},"primaryEnv":"API_KEY","install":[{"id":"mcporter","kind":"node","package":"mcporter","bins":["mcporter"],"label":"Install mcporter (MCP CLI)"}]}}
+metadata: {"openclaw":{"emoji":"🎯","requires":{"bins":["mcporter"],"env":["API_KEY"]},"primaryEnv":"API_KEY","install":[{"id":"mcporter","kind":"node","package":"mcporter","bins":["mcporter"],"label":"Install mcporter (MCP CLI)"},{"id":"admapix-mcp","kind":"uv","package":"admapix-mcp","label":"Install AdMapix MCP Server"}]}}
 ---
 
 # 广告素材搜索助手 (Ad Creative Search)
@@ -16,7 +16,7 @@ metadata: {"openclaw":{"emoji":"🎯","requires":{"bins":["mcporter"],"env":["AP
 
 ```bash
 # 在每个 bash 命令块开头加上（确保非登录 shell 也能找到工具）
-export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:$HOME/.nvm/versions/node/$(ls $HOME/.nvm/versions/node/ 2>/dev/null | tail -1)/bin:$PATH" 2>/dev/null
+export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:$PATH" 2>/dev/null
 ```
 
 ### 可用 Tool
@@ -189,7 +189,7 @@ mcporter list 2>&1 | grep admapix
 - 多个参数用逗号分隔，整体用单引号包裹
 
 **delivery 参数（可选，用于"发送视频到微信"功能）：**
-- 读取 `~/.openclaw/workspace/_user_context.json` 中的 `externalUserId` 和 `channel` 字段（已在 metadata 中声明 `requires.config`）
+- **可选功能**：尝试读取 `~/.openclaw/workspace/_user_context.json` 中的 `externalUserId` 和 `channel` 字段（该文件由 OpenClaw 平台自动生成，非本 skill 创建）
 - 如果文件存在且包含有效信息，传 `delivery_channel` 和 `delivery_user_id` 参数，H5 页面将显示"发送到对话"按钮
 - 如果文件不存在或无相关字段，不传 delivery 参数，搜索功能不受影响（仅不显示发送按钮）
 
