@@ -1,7 +1,7 @@
 ---
 name: ad-creative-search
 description: 广告素材搜索助手。搜索结果通过 ad.h5.miaozhisheng.tech 展示。当用户提到"找素材"、"搜广告"、"广告视频"、"创意素材"、"竞品广告"、"ad creative"、"search ads" 等关键词时触发。
-metadata: {"openclaw":{"emoji":"🎯","requires":{"bins":["mcporter"],"env":["API_KEY"]},"primaryEnv":"API_KEY","install":[{"id":"mcporter","kind":"node","package":"mcporter","bins":["mcporter"],"label":"Install mcporter (MCP CLI)"},{"id":"admapix-mcp","kind":"uv","package":"admapix-mcp","label":"Install AdMapix MCP Server (PyPI)"}]}}
+metadata: {"openclaw":{"emoji":"🎯","requires":{"env":["API_KEY"]},"primaryEnv":"API_KEY"}}
 ---
 
 # 广告素材搜索助手 (Ad Creative Search)
@@ -10,62 +10,42 @@ metadata: {"openclaw":{"emoji":"🎯","requires":{"bins":["mcporter"],"env":["AP
 
 ## 重要：数据获取方式
 
-**必须通过 mcporter 命令获取数据。**
+**通过 curl 调用 AdMapix API 获取数据。**
 
-通过 bash 执行 mcporter 命令调用 MCP tools。
+API 地址：`http://ad.h5.miaozhisheng.tech/api/data/search`
+认证方式：请求头 `X-API-Key: $API_KEY`（环境变量，由平台安全管理）
 
-### 可用 Tool
+### 请求格式
+
+POST JSON，示例：
 
 ```bash
-# 基础搜索
-mcporter call 'admapix.search_creatives(keyword:"puzzle game")'
-
-# 带筛选条件的搜索
-mcporter call 'admapix.search_creatives(keyword:"temu",country_ids:["US","GB"],creative_team:["010"],page_size:10)'
-
-# 完整参数示例
-mcporter call 'admapix.search_creatives(keyword:"idle game",creative_team:["001"],country_ids:["US","JP"],start_date:"2026-02-08",end_date:"2026-03-10",sort_field:"5",sort_rule:"desc",page:1,page_size:20)'
+curl -s -X POST "http://ad.h5.miaozhisheng.tech/api/data/search" \
+  -H "X-API-Key: $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"content_type":"creative","keyword":"puzzle game","page":1,"page_size":20,"sort_field":"3","sort_rule":"desc","generate_page":true}'
 ```
 
-### 参数说明
+### 请求参数
 
 | 参数 | 类型 | 默认值 | 说明 |
 |---|---|---|---|
 | keyword | string | "" | 搜索关键词（app名称、广告文案等） |
-| creative_team | list[string] | 不传=全部 | 素材类型代码，如 ["010"] 视频 |
-| country_ids | list[string] | 不传=全球 | 国家代码，如 ["US","GB"] |
+| creative_team | string[] | 不传=全部 | 素材类型代码，如 ["010"] 视频 |
+| country_ids | string[] | 不传=全球 | 国家代码，如 ["US","GB"] |
 | start_date | string | 30天前 | 开始日期 YYYY-MM-DD |
 | end_date | string | 今天 | 结束日期 YYYY-MM-DD |
 | sort_field | string | "3" | 排序字段："11"相关性/"15"预估曝光/"3"首次发现时间/"4"投放天数 |
 | sort_rule | string | "desc" | 排序方向："desc"降序/"asc"升序 |
 | page | int | 1 | 页码 |
 | page_size | int | 20 | 每页数量（最大60） |
-| trade_level1 | list[string] | 不传=全部 | 行业分类 ID 列表 |
+| trade_level1 | string[] | 不传=全部 | 行业分类 ID 列表 |
+| content_type | string | "creative" | 固定值，必须传 |
+| generate_page | bool | true | 固定传 true，生成 H5 结果页 |
 
 ## 交互流程
 
 收到用户请求后，**严格按以下流程执行**：
-
-### Step 0: 环境检查（仅首次）
-
-**每次会话首次调用时**，先检查 AdMapix MCP Server 是否已配置：
-
-```bash
-mcporter list 2>&1 | grep -q admapix && echo "OK" || echo "NOT_FOUND"
-```
-
-- **输出 `OK`**：环境正常，跳到 Step 1
-- **输出 `NOT_FOUND`**：MCP Server 未注册到 mcporter，使用 mcporter 内置命令注册：
-
-```bash
-mcporter config add admapix --command admapix-mcp --env API_KEY="$API_KEY" --scope home
-```
-
-API_KEY 由 OpenClaw 通过 `requires.env` 安全管理（无需在对话中提供）。admapix-mcp 由 `install` spec 自动安装。注册完成后验证：
-
-```bash
-mcporter list 2>&1 | grep admapix
-```
 
 ### Step 1: 解析参数
 
@@ -122,35 +102,34 @@ mcporter list 2>&1 | grep admapix
 
 其他参数可用默认值，但在 Step 2 中告知用户。
 
-### Step 4: 构建并执行 mcporter 命令
+### Step 4: 构建并执行 curl 命令
 
-用户确认后，拼接 mcporter 命令并执行。
+用户确认后，构建 JSON body 并通过 curl 调用 API。
 
-H5 页面由服务端自动生成，无需传 `generate_page` 参数。
-
-**拼接规则：**
-- 字符串参数用双引号：`keyword:"puzzle game"`
-- 列表参数用方括号：`creative_team:["010"]`, `country_ids:["US","GB"]`
-- 数字参数不加引号：`page:2`, `page_size:20`
-- 只传用户指定的参数和非默认值参数，减少命令长度
-- 多个参数用逗号分隔，整体用单引号包裹
+**构建规则：**
+- `content_type` 固定为 `"creative"`
+- `generate_page` 固定为 `true`
+- 只传用户指定的参数和非默认值参数
+- 数组参数用 JSON 数组格式：`"country_ids":["US","GB"]`
 
 **示例：**
+
 ```bash
-mcporter call 'admapix.search_creatives(keyword:"puzzle game",creative_team:["010"])'
+curl -s -X POST "http://ad.h5.miaozhisheng.tech/api/data/search" \
+  -H "X-API-Key: $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"content_type":"creative","keyword":"puzzle game","creative_team":["010"],"page":1,"page_size":20,"sort_field":"3","sort_rule":"desc","generate_page":true}'
 ```
 
 ### Step 5: 发送 H5 结果页面链接
 
-搜索接口返回结果中会包含 `page_url` 字段，这就是服务端生成的 H5 页面链接。
-
-**直接使用返回的 `page_url`，不需要本地生成 HTML 文件。**
+API 返回的 JSON 中 `page_url` 字段是服务端生成的 H5 页面路径。完整 URL 格式：`http://ad.h5.miaozhisheng.tech{page_url}`
 
 **发送消息**：**只发送**以下简短消息 + H5 链接，**不要**再附带任何文本格式的结果列表
 
 ```
 🎯 搜到 XXX 条「keyword」的广告素材（第 1 页）
-👉 {page_url}
+👉 http://ad.h5.miaozhisheng.tech{page_url}
 
 说「下一页」继续 | 说「只看视频」筛选
 ```
@@ -158,9 +137,8 @@ mcporter call 'admapix.search_creatives(keyword:"puzzle game",creative_team:["01
 **严格要求：消息内容只有上面这几行，不要额外输出搜索结果的文本列表。所有结果展示都在 H5 页面中完成。**
 
 **注意事项：**
-- `page_url` 直接从 mcporter 返回的 JSON 中取，格式为 `http://ad.h5.miaozhisheng.tech/p/{key}`
 - 页面 24 小时后自动过期清理
-- 每次搜索/翻页都会生成新的页面（不同 key）
+- 每次搜索/翻页都会生成新的页面
 
 ### Step 6: 后续交互
 
@@ -171,30 +149,25 @@ mcporter call 'admapix.search_creatives(keyword:"puzzle game",creative_team:["01
 - **「换个关键词 XXX」**：替换 keyword，其他参数可选保留
 - **调整筛选**：修改对应参数，回到 Step 2 确认后重新搜索
 
-## 返回数据结构
-
-mcporter 返回的 JSON 结构如下，用于格式化输出：
+## API 返回数据结构
 
 ```json
 {
-  "total": 1234,
-  "page": 1,
-  "page_size": 20,
-  "items": [{
+  "totalSize": 1234,
+  "page_url": "/p/abc123",
+  "page_key": "abc123",
+  "list": [{
     "id": "xxx",
     "title": "App Name",
     "describe": "广告文案...",
-    "image_urls": ["https://..."],
-    "video_urls": ["https://..."],
-    "playable_urls": ["https://..."],
-    "first_seen": "2026-03-08 12:00:00",
-    "last_seen": "2026-03-10 12:00:00",
-    "days_found": 3,
+    "imageUrl": ["https://..."],
+    "videoUrl": ["https://..."],
+    "globalFirstTime": "2026-03-08 12:00:00",
+    "globalLastTime": "2026-03-10 12:00:00",
+    "findCntSum": 3,
     "impression": 123456,
-    "show_count": 5,
-    "ad_source": 9,
-    "apps": [{"name": "App", "pkg": "com.xxx", "logo": "https://..."}],
-    "website": "https://..."
+    "showCnt": 5,
+    "appList": [{"name": "App", "pkg": "com.xxx", "logo": "https://..."}]
   }]
 }
 ```
