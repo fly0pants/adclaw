@@ -1,7 +1,7 @@
 ---
 name: ad-creative-search
-description: 广告素材搜索助手。当用户提到"找素材"、"搜广告"、"广告视频"、"创意素材"、"竞品广告"、"ad creative"、"search ads" 等关键词时触发。
-metadata: {"openclaw":{"emoji":"🎯","requires":{"bins":["mcporter"],"env":["API_KEY"]},"primaryEnv":"API_KEY","install":[{"id":"mcporter","kind":"node","package":"mcporter","bins":["mcporter"],"label":"Install mcporter (MCP CLI)"},{"id":"admapix-mcp","kind":"uv","package":"admapix-mcp","label":"Install AdMapix MCP Server"}]}}
+description: 广告素材搜索助手。搜索结果通过 ad.h5.miaozhisheng.tech 展示。当用户提到"找素材"、"搜广告"、"广告视频"、"创意素材"、"竞品广告"、"ad creative"、"search ads" 等关键词时触发。
+metadata: {"openclaw":{"emoji":"🎯","requires":{"bins":["mcporter"],"env":["API_KEY"]},"primaryEnv":"API_KEY","install":[{"id":"mcporter","kind":"node","package":"mcporter","bins":["mcporter"],"label":"Install mcporter (MCP CLI)"},{"id":"admapix-mcp","kind":"uv","package":"admapix-mcp","label":"Install AdMapix MCP Server (PyPI)"}]}}
 ---
 
 # 广告素材搜索助手 (Ad Creative Search)
