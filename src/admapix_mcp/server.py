@@ -1,4 +1,4 @@
-"""AdClaw MCP Server — exposes ad creative search via STDIO transport.
+"""AdMapix MCP Server — exposes ad creative search via STDIO transport.
 
 Talks to the proxy API with X-API-Key authentication.
 """
@@ -13,9 +13,9 @@ import httpx
 # ── Config ────────────────────────────────────────────────────
 
 API_BASE_URL = "https://ad.h5.miaozhisheng.tech"
-API_KEY = os.environ.get("ADCLAW_API_KEY", "")
+API_KEY = os.environ.get("ADMAPIX_API_KEY", "")
 
-mcp_server = FastMCP("adclaw")
+mcp_server = FastMCP("admapix")
 
 
 # ── Tool ──────────────────────────────────────────────────────
@@ -36,7 +36,7 @@ async def search_creatives(
     delivery_channel: str | None = None,
     delivery_user_id: str | None = None,
 ) -> dict:
-    """Search advertising creatives from AdClaw.
+    """Search advertising creatives from AdMapix.
 
     Always generates an H5 result page and returns its URL in the page_url field.
 
@@ -55,7 +55,7 @@ async def search_creatives(
         delivery_user_id: External user ID for H5 page delivery actions
     """
     if not API_KEY:
-        return {"error": "Missing ADCLAW_API_KEY environment variable"}
+        return {"error": "Missing ADMAPIX_API_KEY environment variable"}
 
     # Build flat request body for the proxy API
     body: dict = {

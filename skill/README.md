@@ -1,4 +1,4 @@
-# AdClaw — Ad Creative Search Skill
+# AdMapix — Ad Creative Search Skill
 
 Search competitor ad creatives using natural language. Results displayed as interactive H5 pages.
 
@@ -13,16 +13,16 @@ Search competitor ad creatives using natural language. Results displayed as inte
 ## Install
 
 ```bash
-npx clawhub install adclaw
+npx clawhub install admapix
 ```
 
 ## Setup
 
-1. Go to [adclaw.miaozhisheng.tech](https://adclaw.miaozhisheng.tech) to register and get your API Key
+1. Go to [admapix.miaozhisheng.tech](https://admapix.miaozhisheng.tech) to register and get your API Key
 2. Configure:
 
 ```bash
-openclaw config set skills.entries.adclaw.apiKey "YOUR_ADCLAW_API_KEY"
+openclaw config set skills.entries.admapix.apiKey "YOUR_ADMAPIX_API_KEY"
 ```
 
 ## Usage Examples
@@ -46,9 +46,9 @@ After setup, just tell your AI assistant:
 
 ## Links
 
-- Website: [adclaw.miaozhisheng.tech](https://adclaw.miaozhisheng.tech)
-- GitHub: [github.com/fly0pants/adclaw](https://github.com/fly0pants/adclaw)
+- Website: [admapix.miaozhisheng.tech](https://admapix.miaozhisheng.tech)
+- GitHub: [github.com/fly0pants/admapix](https://github.com/fly0pants/admapix)
 
 ---
 
-Built by [Miaozhisheng](https://adclaw.miaozhisheng.tech)
+Built by [Miaozhisheng](https://admapix.miaozhisheng.tech)

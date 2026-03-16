@@ -1,8 +1,8 @@
-<h1 align="center">🎯 AdClaw</h1>
+<h1 align="center">🎯 AdMapix</h1>
 
 <p align="center">
   <strong>AI-Powered Ad Creative Intelligence — Search, Discover, Deliver.</strong><br>
-  <sub><b>Ad</b>(Advertising) + <b>Claw</b>(OpenClaw) — AI-powered ad creative intelligence.</sub>
+  <sub><b>Ad</b>(Advertising) + <b>Mapix</b>(Mapping Pixels) — AI-powered ad creative intelligence.</sub>
 </p>
 
 <p align="center">
@@ -23,9 +23,9 @@
 
 ---
 
-## 🤔 What is AdClaw?
+## 🤔 What is AdMapix?
 
-AdClaw is an **MCP Server + OpenClaw Skill** that lets AI agents search competitor ad creatives through natural language.
+AdMapix is an **MCP Server + OpenClaw Skill** that lets AI agents search competitor ad creatives through natural language.
 
 Just tell your agent what you're looking for, and get back a rich H5 results page with videos, images, metrics, and one-click delivery to WeChat.
 
@@ -92,15 +92,15 @@ One install script handles Python, Node.js, mcporter, and config — fully autom
 ### Mac / Linux
 
 ```bash
-git clone https://github.com/fly0pants/adclaw.git
-bash adclaw/install.sh <YOUR_API_KEY>
+git clone https://github.com/fly0pants/admapix.git
+bash admapix/install.sh <YOUR_API_KEY>
 ```
 
 ### Windows (PowerShell)
 
 ```powershell
-git clone https://github.com/fly0pants/adclaw.git
-powershell -ExecutionPolicy Bypass -File adclaw\install.ps1 -ApiKey <YOUR_API_KEY>
+git clone https://github.com/fly0pants/admapix.git
+powershell -ExecutionPolicy Bypass -File admapix\install.ps1 -ApiKey <YOUR_API_KEY>
 ```
 
 The installer automatically:
@@ -110,7 +110,7 @@ The installer automatically:
 | 1 | Detects or installs **Python 3.10+** |
 | 2 | Detects or installs **Node.js** |
 | 3 | Detects or installs **mcporter** |
-| 4 | Sets up MCP Server in `~/.adclaw/` |
+| 4 | Sets up MCP Server in `~/.admapix/` |
 | 5 | Configures `~/.mcporter/mcporter.json` |
 | 6 | Installs OpenClaw Skill to `~/.openclaw/skills/` |
 
@@ -141,8 +141,8 @@ Through your AI agent (OpenClaw, etc.), just say:
 1. **Install dependencies**
 
 ```bash
-python3 -m venv ~/.adclaw/.venv
-~/.adclaw/.venv/bin/pip install mcp httpx pydantic
+python3 -m venv ~/.admapix/.venv
+~/.admapix/.venv/bin/pip install mcp httpx pydantic
 ```
 
 2. **Configure `~/.mcporter/mcporter.json`**
@@ -150,8 +150,8 @@ python3 -m venv ~/.adclaw/.venv
 ```json
 {
   "mcpServers": {
-    "adclaw": {
-      "command": "~/.adclaw/.venv/bin/python3 ~/.adclaw/server.py",
+    "admapix": {
+      "command": "~/.admapix/.venv/bin/python3 ~/.admapix/server.py",
       "env": {
         "API_KEY": "<YOUR_API_KEY>"
       }
@@ -175,9 +175,9 @@ cp -r skill/ ~/.openclaw/skills/ad-creative-search/
 ```
 User (WeChat / Agent)
   → AI Agent (OpenClaw)
-    → mcporter call 'adclaw.search_creatives(...)'
+    → mcporter call 'admapix.search_creatives(...)'
       → MCP Server (Python, STDIO)
-        → AdClaw API
+        → AdMapix API
           → H5 Result Page ← User views in browser
           → Video Delivery  ← User receives in WeChat
 ```
@@ -192,7 +192,7 @@ MIT License — free to use, modify, and distribute.
 
 <div align="center">
 
-**AdClaw** — *Ad intelligence at your fingertips.*
+**AdMapix** — *Ad intelligence at your fingertips.*
 
 Built by [Miaozhisheng](https://miaozhisheng.tech/)
 

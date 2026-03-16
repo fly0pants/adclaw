@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# AdClaw 安装脚本 (macOS / Linux)
+# AdMapix 安装脚本 (macOS / Linux)
 #
 # 用法：
 #   bash install.sh <API_KEY>
@@ -23,7 +23,7 @@ if [ -z "$API_KEY" ]; then
   exit 1
 fi
 
-INSTALL_DIR="$HOME/.adclaw"
+INSTALL_DIR="$HOME/.admapix"
 MCPORTER_CONFIG="$HOME/.mcporter/mcporter.json"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 MIN_PY_MAJOR=3
@@ -62,7 +62,7 @@ ensure_homebrew() {
 
 echo ""
 echo "══════════════════════════════════════"
-echo "  AdClaw 安装"
+echo "  AdMapix 安装"
 echo "══════════════════════════════════════"
 echo ""
 echo "── [1/5] 检测 Python 环境 ──"
@@ -196,7 +196,7 @@ if os.path.exists(path):
         cfg = json.load(f)
 
 servers = cfg.get('mcpServers', {})
-servers['adclaw'] = {
+servers['admapix'] = {
     'command': '$VENV_PYTHON $SERVER_PY',
     'env': {'API_KEY': '$API_KEY'}
 }
