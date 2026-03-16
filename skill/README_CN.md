@@ -18,7 +18,7 @@ npx clawhub install admapix
 
 ## 配置
 
-1. 前往 [admapix.miaozhisheng.tech](https://admapix.miaozhisheng.tech) 注册并获取 API Key
+1. 前往 [www.admapix.com](https://www.admapix.com) 注册并获取 API Key
 2. 配置环境变量：
 
 ```bash
@@ -46,9 +46,9 @@ openclaw config set skills.entries.admapix.apiKey "你的ADMAPIX_API_KEY"
 
 ## 链接
 
-- 官网：[admapix.miaozhisheng.tech](https://admapix.miaozhisheng.tech)
+- 官网：[www.admapix.com](https://www.admapix.com)
 - GitHub：[github.com/fly0pants/admapix](https://github.com/fly0pants/admapix)
 
 ---
 
-由 [妙智盛](https://admapix.miaozhisheng.tech) 提供技术支持
+由 [妙智盛](https://www.admapix.com) 提供技术支持

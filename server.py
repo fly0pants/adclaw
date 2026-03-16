@@ -12,7 +12,7 @@ import httpx
 
 # ── Config ────────────────────────────────────────────────────
 
-API_BASE_URL = "https://ad.h5.miaozhisheng.tech"
+API_BASE_URL = "https://api.admapix.com"
 API_KEY = os.environ.get("ADMAPIX_API_KEY", "")
 
 mcp_server = FastMCP("admapix")

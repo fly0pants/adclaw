@@ -33,5 +33,5 @@ dependencies = [
 admapix-mcp = "admapix_mcp.__main__:main"
 
 [project.urls]
-Homepage = "https://admapix.miaozhisheng.tech"
+Homepage = "https://www.admapix.com"
 Repository = "https://github.com/fly0pants/admapix"

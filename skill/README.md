@@ -18,7 +18,7 @@ npx clawhub install admapix
 
 ## Setup
 
-1. Go to [admapix.miaozhisheng.tech](https://admapix.miaozhisheng.tech) to register and get your API Key
+1. Go to [www.admapix.com](https://www.admapix.com) to register and get your API Key
 2. Configure:
 
 ```bash
@@ -46,9 +46,9 @@ After setup, just tell your AI assistant:
 
 ## Links
 
-- Website: [admapix.miaozhisheng.tech](https://admapix.miaozhisheng.tech)
+- Website: [www.admapix.com](https://www.admapix.com)
 - GitHub: [github.com/fly0pants/admapix](https://github.com/fly0pants/admapix)
 
 ---
 
-Built by [Miaozhisheng](https://admapix.miaozhisheng.tech)
+Built by [Miaozhisheng](https://www.admapix.com)
