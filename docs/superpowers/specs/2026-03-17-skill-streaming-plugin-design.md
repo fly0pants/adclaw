@@ -39,33 +39,56 @@ agent_end         →  cleanup state → optional summary message
 ### Data Flow
 
 ```
-Hook fires
-  → ctx.sessionKey parsed → extract channel + peerId + accountId
-  → closure-captured api.runtime → call runtime.channel[channel].sendMessage(...)
-  → progress message delivered to user
-
-For webchat/SSE:
-  → emitAgentEvent({stream: "assistant"}) → gateway SSE handler → browser client
+Hook fires (before_tool_call / after_tool_call)
+  → ctx.sessionKey parsed via parseAgentSessionKey() → extract channel + peerId + accountId
+  → closure-captured api.runtime → call channel-specific send function
+  → progress message delivered to user as standalone message
 ```
 
 ### Key Design Decision: Independent Messages (Not Card Streaming)
 
-`emitAgentEvent` and channel streaming cards (`onPartialReply`) are parallel, independent pipelines. Injecting into card streaming from a plugin hook is not feasible without deep framework changes.
+`onPartialReply` (which drives channel streaming cards like Feishu CardKit) only receives data from the LLM token stream. Plugin hooks cannot inject into this pipeline. `emitAgentEvent` is an internal function not exported from Plugin SDK.
 
-**v1 approach**: Send progress as standalone messages via channel send functions. This works universally across all channels.
+**v1 approach**: Send progress as standalone messages via channel-specific send functions (`runtime.channel.telegram.sendMessageTelegram`, etc.). This works universally across all native channels.
+
+**Webchat/SSE**: Webchat connections go through the gateway WebSocket. Progress messages for webchat sessions will be sent via a registered gateway method (see Message Sending section).
 
 **Future v2**: Explore bridging into channel-specific streaming cards for a more polished UX.
+
+## Skill Detection
+
+`before_tool_call` context only has `agentId`, `sessionKey`, and `toolName` — it does NOT indicate which skill is active. We solve this by tracking skill activation in an earlier hook.
+
+**Strategy**: Use the `llm_input` hook to detect skill activation. When the system prompt contains skill markers (SKILL.md content is injected into the prompt by OpenClaw), we record the active skill for that session. Then `before_tool_call` looks up the session to determine if a skill is running.
+
+```typescript
+// In register():
+const activeSkills = new Map<string, string | null>(); // sessionKey → skillName
+
+api.on("llm_input", (event, ctx) => {
+  // event.systemPrompt contains injected skill content
+  // Check for skill metadata markers (e.g., "primaryEnv:", skill-specific patterns)
+  const skillName = detectSkillFromPrompt(event.systemPrompt);
+  if (ctx.sessionKey) {
+    activeSkills.set(ctx.sessionKey, skillName);
+  }
+});
+```
+
+In `before_tool_call`, check `activeSkills.get(ctx.sessionKey)`. If null, skip progress (regular chat). If set, proceed with progress injection.
+
+**This plugin never blocks or modifies tool calls** — it only observes and sends progress messages. The `before_tool_call` handler returns void (not `{ block: true }`).
 
 ## State Machine
 
 ```typescript
 type RunState = {
-  runId: string
+  sessionKey: string             // used as key (runId not available in hook ctx)
   skillName: string | null       // null = regular chat, skip progress
   steps: StepRecord[]
   currentStep: number
   startedAt: number
-  longRunningTimer?: NodeJS.Timeout
+  lastActivityAt: number         // for TTL cleanup
 }
 
 type StepRecord = {
@@ -79,62 +102,100 @@ type StepRecord = {
 }
 ```
 
-One `RunState` per agent run. Created on first `before_tool_call` for a skill run, cleaned up on `agent_end`.
+One `RunState` per session. Created on first `before_tool_call` for a skill run, cleaned up on `agent_end`.
+
+**TTL cleanup**: A periodic sweep (every 60s) removes RunState entries where `Date.now() - lastActivityAt > 600_000` (10 minutes), preventing memory leaks if `agent_end` is missed.
 
 ## Plugin Registration
 
+Plugin metadata lives in `openclaw.plugin.json` (required by OpenClaw plugin system):
+
+```json
+{
+  "id": "skill-streaming",
+  "name": "Skill Streaming Progress",
+  "version": "0.1.0",
+  "description": "Auto-inject streaming progress for skill tool calls",
+  "main": "dist/index.js"
+}
+```
+
+The plugin exports a `register` function that receives `OpenClawPluginApi`:
+
 ```typescript
-import type { OpenClawPluginDefinition } from "openclaw/plugin-sdk";
-import { emitAgentEvent } from "openclaw/plugin-sdk";
+// src/index.ts
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
+import { parseAgentSessionKey } from "openclaw/plugin-sdk";
 
-const plugin: OpenClawPluginDefinition = {
-  id: "skill-streaming",
-  name: "Skill Streaming Progress",
-  version: "0.1.0",
-  description: "Auto-inject streaming progress for skill tool calls",
+export function register(api: OpenClawPluginApi) {
+  const runtime = api.runtime;   // closure capture — access to channel send functions
+  const config = api.config;     // closure capture — access to global config
+  const runStates = new Map<string, RunState>();
+  const activeSkills = new Map<string, string | null>();
 
-  register(api) {
-    const runtime = api.runtime;   // closure capture
-    const config = api.config;     // closure capture
-    const runStates = new Map<string, RunState>();
-
-    api.on("before_tool_call", (event, ctx) => {
-      if (!isSkillRun(event, ctx)) return;
-
-      const state = getOrCreateRunState(runStates, ctx, config);
-      const label = resolveLabel(event, state.skillConfig);
-      const step = pushStep(state, label);
-
-      sendProgress(runtime, ctx, emitAgentEvent, formatStepStart(step, state));
-
-      if (step.longRunning) {
-        step.timer = setInterval(() => {
-          sendProgress(runtime, ctx, emitAgentEvent, formatStillWorking(step, state));
-        }, step.pollInterval ?? 15_000);
+  // TTL cleanup: prevent memory leaks if agent_end is missed
+  const cleanupInterval = setInterval(() => {
+    const now = Date.now();
+    for (const [key, state] of runStates) {
+      if (now - state.lastActivityAt > 600_000) {
+        clearAllTimers(state);
+        runStates.delete(key);
       }
-    });
+    }
+  }, 60_000);
 
-    api.on("after_tool_call", (event, ctx) => {
-      const state = runStates.get(ctx.sessionKey);
-      if (!state) return;
+  // Hook 0: detect active skill from system prompt
+  api.on("llm_input", (event, ctx) => {
+    const skillName = detectSkillFromPrompt(event.systemPrompt);
+    if (ctx.sessionKey) activeSkills.set(ctx.sessionKey, skillName);
+  });
 
-      const step = finishCurrentStep(state, event.error, event.durationMs);
-      if (step.timer) clearInterval(step.timer);
+  // Hook 1: tool call starts — send progress message
+  api.on("before_tool_call", (event, ctx) => {
+    // event: { toolName: string, params: Record<string, unknown> }
+    // ctx: { agentId?: string, sessionKey?: string, toolName: string }
+    const skillName = activeSkills.get(ctx.sessionKey ?? "");
+    if (!skillName) return; // not a skill run, skip
 
-      sendProgress(runtime, ctx, emitAgentEvent, formatStepDone(step, state));
-    });
+    const state = getOrCreateRunState(runStates, ctx.sessionKey!, skillName, config);
+    const label = resolveLabel(event, state.skillConfig);
+    const step = pushStep(state, label);
 
-    api.on("agent_end", (event, ctx) => {
-      const state = runStates.get(ctx.sessionKey);
-      if (!state) return;
+    sendProgress(runtime, ctx.sessionKey!, formatStepStart(step, state));
 
-      if (state.steps.length > 1) {
-        sendProgress(runtime, ctx, emitAgentEvent, formatSummary(state));
-      }
-      runStates.delete(ctx.sessionKey);
-    });
-  }
-};
+    if (step.longRunning) {
+      step.timer = setInterval(() => {
+        sendProgress(runtime, ctx.sessionKey!, formatStillWorking(step, state));
+      }, step.pollInterval ?? 15_000);
+    }
+  });
+
+  // Hook 2: tool call ends — send completion message
+  api.on("after_tool_call", (event, ctx) => {
+    // event: { toolName, params, result?, error?: string, durationMs?: number }
+    const state = runStates.get(ctx.sessionKey ?? "");
+    if (!state) return;
+
+    const step = finishCurrentStep(state, event.error, event.durationMs);
+    if (step.timer) clearInterval(step.timer);
+
+    sendProgress(runtime, ctx.sessionKey!, formatStepDone(step, state));
+  });
+
+  // Hook 3: agent run ends — cleanup + optional summary
+  api.on("agent_end", (event, ctx) => {
+    const key = ctx.sessionKey ?? "";
+    const state = runStates.get(key);
+    if (!state) return;
+
+    if (state.steps.length > 1) {
+      sendProgress(runtime, key, formatSummary(state));
+    }
+    clearAllTimers(state);
+    runStates.delete(key);
+    activeSkills.delete(key);
+  });
+}
 ```
 
 ## Auto Label Extraction
@@ -149,12 +210,19 @@ When no declarative config exists, labels are auto-extracted from tool calls:
 
 Extraction function:
 ```typescript
-function extractLabel(event: BeforeToolCallEvent): string {
+function extractLabel(event: PluginHookBeforeToolCallEvent): string {
   const { toolName, params } = event;
   if (toolName === "bash" || toolName === "shell") {
     const cmd = String(params.command ?? "");
     const curlMatch = cmd.match(/curl\s+.*?(https?:\/\/[^\s"']+)/);
-    if (curlMatch) return `Querying ${new URL(curlMatch[1]).host}${new URL(curlMatch[1]).pathname}`;
+    if (curlMatch) {
+      try {
+        const url = new URL(curlMatch[1]);
+        return `Querying ${url.host}${url.pathname}`;
+      } catch {
+        return `Querying ${curlMatch[1].slice(0, 50)}`;
+      }
+    }
     return `Running: ${cmd.slice(0, 50)}${cmd.length > 50 ? "..." : ""}`;
   }
   return `Executing: ${toolName}`;
@@ -201,55 +269,131 @@ metadata:
 
 ### sessionKey Parsing
 
-Format: `agent:<agentId>:<channel>:<accountId>:<peerKind>:<peerId>`
+sessionKey format varies by dmScope configuration. Use SDK's `parseAgentSessionKey()` for base parsing, then extract channel info from the `rest` segment.
+
+Examples:
+- `agent:main:main` → webchat/local (no native channel)
+- `agent:main:telegram:default:direct:123456` → Telegram DM
+- `agent:main:discord:default:guild-abc:channel-def` → Discord channel
+- `agent:main:feishu:default:direct:user789` → Feishu DM
 
 ```typescript
-function parseTarget(sessionKey: string): { channel: string; peerId: string; accountId: string } | null {
+import { parseAgentSessionKey } from "openclaw/plugin-sdk";
+
+type SendTarget = {
+  channel: string;      // "telegram", "discord", "slack", etc.
+  peerId: string;       // target chat/user/channel ID
+  accountId: string;    // OpenClaw account ID for this channel
+};
+
+function parseTarget(sessionKey: string): SendTarget | null {
   const parsed = parseAgentSessionKey(sessionKey);
   if (!parsed) return null;
 
   const parts = parsed.rest.split(":").filter(Boolean);
-  // "main" = local/webchat, no channel send needed
-  if (parts[0] === "main") return null;
+  // "main" alone means webchat/local — handled via gateway, not channel send
+  if (parts.length <= 1 && parts[0] === "main") return null;
 
-  return {
-    channel: parts[0],          // "feishu", "telegram", "discord", etc.
-    accountId: parts[1] ?? "default",
-    peerId: parts.slice(-1)[0]  // last segment is always the target ID
-  };
+  const channel = parts[0];
+  // Known channels in PluginRuntime.channel:
+  // telegram, discord, slack, whatsapp, signal, imessage, line
+  // Feishu is an extension — may or may not be on runtime.channel
+  const accountId = parts[1] ?? "default";
+  const peerId = parts[parts.length - 1]; // last segment is always target ID
+
+  return { channel, peerId, accountId };
 }
 ```
 
-### Dual-Path Sending
+### Channel Send with Explicit Adapter Map
+
+Instead of dynamic function name construction, use an explicit adapter map for type safety and per-channel signature handling:
 
 ```typescript
+type ChannelSender = (
+  runtime: PluginRuntime,
+  target: SendTarget,
+  message: string
+) => Promise<void>;
+
+// Explicit adapter per supported channel
+const channelAdapters: Record<string, ChannelSender> = {
+  telegram: async (rt, t, msg) => {
+    await rt.channel.telegram.sendMessageTelegram(t.peerId, msg, {
+      accountId: t.accountId,
+      textMode: "markdown",
+    });
+  },
+  discord: async (rt, t, msg) => {
+    await rt.channel.discord.sendMessageDiscord(t.peerId, msg, {
+      accountId: t.accountId,
+    });
+  },
+  slack: async (rt, t, msg) => {
+    await rt.channel.slack.sendMessageSlack(t.peerId, msg, {
+      accountId: t.accountId,
+    });
+  },
+  whatsapp: async (rt, t, msg) => {
+    await rt.channel.whatsapp.sendMessageWhatsApp(t.peerId, msg, {
+      accountId: t.accountId,
+    });
+  },
+  signal: async (rt, t, msg) => {
+    await rt.channel.signal.sendMessageSignal(t.peerId, msg, {
+      accountId: t.accountId,
+    });
+  },
+  line: async (rt, t, msg) => {
+    await rt.channel.line.sendMessageLine(t.peerId, msg, {
+      accountId: t.accountId,
+    });
+  },
+  // Feishu: extension-based, attempt dynamic access with fallback
+  feishu: async (rt, t, msg) => {
+    const feishuSend = (rt.channel as any)?.feishu?.sendMessageFeishu;
+    if (feishuSend) {
+      await feishuSend(t.peerId, msg, { accountId: t.accountId });
+    }
+    // If feishu send not available, silently skip (logged as warning)
+  },
+};
+
 function sendProgress(
   runtime: PluginRuntime,
-  ctx: HookContext,
-  emit: typeof emitAgentEvent,
+  sessionKey: string,
   message: string
 ) {
-  // Path 1: global event bus → webchat/SSE clients
-  emit({
-    runId: ctx.runId,
-    stream: "assistant",
-    sessionKey: ctx.sessionKey,
-    data: { text: message, type: "streaming_progress" }
-  });
+  const target = parseTarget(sessionKey);
+  if (!target) return; // webchat/local — no standalone message needed for v1
 
-  // Path 2: native channel → standalone message
-  const target = parseTarget(ctx.sessionKey);
-  if (!target) return;
-
-  const sender = runtime.channel?.[target.channel];
-  const sendFn = sender?.[`sendMessage${capitalize(target.channel)}`];
-  if (sendFn) {
-    sendFn(target.peerId, message, { accountId: target.accountId }).catch(() => {});
+  const adapter = channelAdapters[target.channel];
+  if (adapter) {
+    adapter(runtime, target, message).catch(() => {
+      // Silently swallow send errors — progress is best-effort
+    });
   }
 }
 ```
 
-**Risk note**: Feishu is an extension, not core plugin-sdk. Its send function may be mounted differently on `runtime.channel`. Needs verification during implementation.
+### Webchat/SSE Support
+
+For webchat sessions (sessionKey = `agent:main:main`), the plugin registers a gateway method during setup. This allows pushing progress events through the gateway WebSocket to connected browser clients:
+
+```typescript
+// In register():
+api.registerGatewayMethod("skill-streaming.progress", (opts) => {
+  // Push progress event to the specific webchat session
+  opts.context.nodeSendToSession(
+    opts.params.sessionKey as string,
+    "skill-streaming:progress",
+    { text: opts.params.message }
+  );
+  opts.respond(true);
+});
+```
+
+For v1, webchat progress is a stretch goal — native channel support is the priority.
 
 ## Progress Message Format
 
@@ -274,18 +418,19 @@ function sendProgress(
 
 ```
 openclaw-plugin-skill-streaming/
+├── openclaw.plugin.json      # Plugin manifest (id, name, version, main)
 ├── package.json
+├── tsconfig.json
 ├── README.md
 ├── README_CN.md
 ├── src/
-│   ├── index.ts              # Plugin entry (register + hooks)
-│   ├── state.ts              # RunState management
+│   ├── index.ts              # Plugin entry (export register function)
+│   ├── state.ts              # RunState management + TTL cleanup
 │   ├── label.ts              # Auto label extraction (URL/command parsing)
-│   ├── matcher.ts            # Declarative steps matching
+│   ├── matcher.ts            # Declarative steps matching against SKILL.md config
 │   ├── formatter.ts          # Progress message formatting (i18n)
-│   ├── sender.ts             # Channel message sending (sessionKey parse + runtime call)
+│   ├── sender.ts             # Channel adapter map + sendProgress
 │   └── types.ts              # Type definitions
-├── tsconfig.json
 └── test/
     ├── state.test.ts
     ├── label.test.ts
@@ -311,20 +456,33 @@ Zero external dependencies. Only depends on OpenClaw Plugin SDK types.
 ## Release Phases
 
 ### Phase 1 (v0.1.0): OpenClaw Plugin
-- Core hook-based progress injection
-- Auto label extraction
-- Declarative SKILL.md enhancement
-- Dual-path message sending (emitAgentEvent + channel send)
+- Core hook-based progress injection (before_tool_call, after_tool_call, agent_end)
+- Skill detection via llm_input hook
+- Auto label extraction from tool call commands
+- Declarative SKILL.md enhancement (optional)
+- Channel adapter map for native channels (Telegram, Discord, Slack, WhatsApp, Signal, Line)
+- Feishu support (best-effort, depends on extension availability)
+- TTL-based state cleanup
 - Publish to ClawHub + npm
 
-### Phase 2 (v0.2.0+): Standalone Core
-- Extract channel-agnostic logic into `skill-streaming-core` npm package
+### Phase 2 (v0.2.0+): Enhancements
+- Webchat/SSE support via gateway method
+- Extract channel-agnostic logic (state, formatter, label, matcher) into `skill-streaming-core` npm package
 - OpenClaw plugin becomes a thin adapter over the core
 - Document protocol for other frameworks to integrate
+- Evaluate whether standalone core has enough reusable value (state machine + formatter + label extractor)
+
+## Resolved Design Decisions
+
+1. **Skill detection**: Solved via `llm_input` hook — detect skill markers in system prompt, store per session. `before_tool_call` looks up session to decide whether to inject progress.
+2. **No `emitAgentEvent` in Plugin SDK**: Confirmed not exported. v1 uses channel-specific send functions exclusively. Webchat/SSE deferred to v2 via gateway method.
+3. **Hook context limitations**: `before_tool_call` ctx has no `runId`. Use `sessionKey` as state key instead. Channel info extracted from sessionKey via `parseAgentSessionKey()`.
+4. **Plugin does not block tool calls**: All hook handlers return void. No modification to tool call params or execution.
 
 ## Open Questions / Risks
 
-1. **Feishu send function availability**: Feishu is an extension, its send function may not be on `runtime.channel.feishu`. Verify during implementation; fallback to `emitAgentEvent` only.
-2. **Skill detection in hooks**: `before_tool_call` context has `sessionKey` and `toolName` but may not directly indicate which skill is active. May need to track skill activation via `session_start` or `llm_input` hooks.
-3. **Message ordering**: Progress messages are sent as independent messages. Under high concurrency, they may arrive out of order on some channels. Use sequence numbers in message text as mitigation.
-4. **Rate limiting**: Channels have rate limits (Feishu, Telegram, etc.). The `long_running` timer should respect per-channel limits. Default 15s interval should be safe for all channels.
+1. **Feishu send function availability**: Feishu is an extension, not core plugin-sdk. `runtime.channel.feishu` may not exist. Adapter uses dynamic access with silent fallback.
+2. **Message ordering**: Progress messages are standalone. Under high concurrency, they may arrive out of order. Mitigated by step number in message text (`[1/3]`, `[2/3]`).
+3. **Rate limiting**: Channels have rate limits. Default `long_running` poll interval of 15s is conservative. Per-channel rate limit awareness may be needed for very chatty skills.
+4. **Skill detection accuracy**: `llm_input` prompt may not always contain clear skill markers. False positives (progress on non-skill tool calls) are low-risk but annoying. May need refinement based on real-world testing.
+5. **sessionKey format evolution**: sessionKey format varies by dmScope and may change across OpenClaw versions. Rely on SDK's `parseAgentSessionKey()` rather than manual parsing to stay compatible.
