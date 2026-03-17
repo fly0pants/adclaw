@@ -1,7 +1,7 @@
 ---
 name: admapix
 description: "Ad intelligence & app analytics assistant. Search ad creatives, analyze apps, view rankings, track downloads/revenue, and get market insights via api.admapix.com. Triggers: 找素材, 搜广告, 广告素材, 竞品分析, 广告分析, 排行榜, 下载量, 收入分析, 市场分析, 投放分析, App分析, 出海分析, search ads, find creatives, ad spy, ad analysis, app ranking, download data, revenue, market analysis, app intelligence, competitor analysis, ad distribution."
-metadata: {"openclaw":{"emoji":"🎯","primaryEnv":"ADMAPIX_API_KEY"}}
+metadata: {"openclaw":{"emoji":"🎯","primaryEnv":"ADMAPIX_API_KEY","optionalEnv":["DEEP_RESEARCH_URL"]}}
 ---
 
 # AdMapix Intelligence Assistant
@@ -63,6 +63,62 @@ Before any query, run: `[ -n "$ADMAPIX_API_KEY" ] && echo "ok" || echo "missing"
 2. Configure: openclaw config set skills.entries.admapix.apiKey "YOUR_KEY"
 3. Try again 🎉
 ```
+
+### Step 1.5: Complexity Classification — 复杂度分类
+
+Before routing, classify the query complexity to decide the execution path:
+
+| Complexity | Criteria | Path | Examples |
+|---|---|---|---|
+| **Simple** | Can be answered with 1-2 API calls; specific, factual question | Skill handles directly (Step 2 onward) | "Temu排名第几", "搜一下休闲游戏素材", "Temu下载量" |
+| **Deep** | Requires 3+ API calls, cross-dimensional analysis, reasoning, or causes/trends interpretation | Route to Deep Research Framework | "分析Temu的广告投放策略", "对比Temu和Shein的全面情况", "2024东南亚手游市场全景" |
+
+**Classification signals:**
+
+Simple signals (any match → Simple):
+- Single entity + single metric: "X的下载量", "X排第几", "X的开发者是谁"
+- Browsing/listing: "搜一下", "找一下", "search", "find"
+- Direct data lookup: "排行榜", "Top 10", "最新素材"
+
+Deep signals (any match → Deep):
+- Analysis keywords: "分析", "策略", "analyze", "strategy", "为什么", "why"
+- Comprehensive scope: "全面", "深度", "全景", "综合", "overview", "comprehensive"
+- Multi-dimensional: "对比分析", "趋势解读", "市场研究"
+- User explicitly requests: "深度研究", "deep research", "详细分析"
+
+**Default:** If unsure, classify as **Simple** (better to be fast than slow).
+
+**Execution paths:**
+
+**→ Simple path:** Continue to Step 2 (existing routing logic). At the end of the response, append a hint in the user's language:
+- Chinese: `💡 需要更深入的分析？试试说"深度分析{topic}"`
+- English: `💡 Want deeper analysis? Try "deep research on {topic}"`
+
+**→ Deep path:** Check if `DEEP_RESEARCH_URL` is set: `[ -n "$DEEP_RESEARCH_URL" ] && echo "ok" || echo "missing"`
+
+If set, call the Deep Research Framework:
+
+```bash
+curl -s -X POST "${DEEP_RESEARCH_URL}/research" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "{user_query}",
+    "language": "{detected_language}",
+    "output_format": "auto",
+    "web_search": "fallback",
+    "max_depth": 3
+  }'
+```
+
+**Processing framework response:**
+1. Extract `result.content` (Markdown report) and present directly to the user
+2. If `result.data_gaps` exists, note the limitations
+3. Append data source summary: API sources as endpoint names, web sources as clickable links with confidence
+4. Add follow-up hints based on the research content
+
+**If `DEEP_RESEARCH_URL` is not set:** Fall back to the existing Deep Dive logic (Step 2 → Deep Dive intent group).
+
+---
 
 ### Step 2: Route — Classify Intent & Load Reference
 
