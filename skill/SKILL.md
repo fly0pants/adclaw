@@ -1,7 +1,7 @@
 ---
 name: admapix
 description: "Ad intelligence & app analytics assistant. Search ad creatives, analyze apps, view rankings, track downloads/revenue, and get market insights via api.admapix.com. Triggers: 找素材, 搜广告, 广告素材, 竞品分析, 广告分析, 排行榜, 下载量, 收入分析, 市场分析, 投放分析, App分析, 出海分析, search ads, find creatives, ad spy, ad analysis, app ranking, download data, revenue, market analysis, app intelligence, competitor analysis, ad distribution."
-metadata: {"openclaw":{"emoji":"🎯","primaryEnv":"ADMAPIX_API_KEY","optionalEnv":["DEEP_RESEARCH_URL"]}}
+metadata: {"openclaw":{"emoji":"🎯","primaryEnv":"ADMAPIX_API_KEY"}}
 ---
 
 # AdMapix Intelligence Assistant
@@ -70,23 +70,30 @@ Before routing, classify the query complexity to decide the execution path:
 
 | Complexity | Criteria | Path | Examples |
 |---|---|---|---|
-| **Simple** | Can be answered with 1-2 API calls; specific, factual question | Skill handles directly (Step 2 onward) | "Temu排名第几", "搜一下休闲游戏素材", "Temu下载量" |
-| **Deep** | Requires 3+ API calls, cross-dimensional analysis, reasoning, or causes/trends interpretation | Route to Deep Research Framework | "分析Temu的广告投放策略", "对比Temu和Shein的全面情况", "2024东南亚手游市场全景" |
+| **Simple** | Can be answered with exactly 1 API call; single-entity, single-metric lookup | Skill handles directly (Step 2 onward) | "Temu排名第几", "搜一下休闲游戏素材", "Temu下载量", "Top 10 游戏" |
+| **Deep** | Requires 2+ API calls, any cross-entity/cross-dimensional query, analysis, comparison, or trend interpretation | Route to Deep Research Framework | "分析Temu的广告投放策略", "Temu和Shein对比", "放置少女的投放策略和竞品对比", "东南亚手游市场分析" |
 
-**Classification signals:**
+**Classification rule — count the API calls needed:**
 
-Simple signals (any match → Simple):
-- Single entity + single metric: "X的下载量", "X排第几", "X的开发者是谁"
-- Browsing/listing: "搜一下", "找一下", "search", "find"
-- Direct data lookup: "排行榜", "Top 10", "最新素材"
+Simple (exactly 1 API call):
+- Single search: "搜一下休闲游戏素材" → 1× search
+- Single ranking: "iOS免费榜Top10" → 1× store-rank
+- Single detail: "Temu的开发者是谁" → 1× unified-product-search
+- Single metric: "Temu下载量" → 1× download-detail (after getting ID, but that's lookup+query=2, so actually **Deep**)
 
-Deep signals (any match → Deep):
-- Analysis keywords: "分析", "策略", "analyze", "strategy", "为什么", "why"
-- Comprehensive scope: "全面", "深度", "全景", "综合", "overview", "comprehensive"
-- Multi-dimensional: "对比分析", "趋势解读", "市场研究"
-- User explicitly requests: "深度研究", "deep research", "详细分析"
+Deep (2+ API calls):
+- Any query requiring entity lookup + data fetch: "Temu下载量" needs search→download = 2 calls → **Deep**
+- Any analysis: "分析XX" → always multi-call → **Deep**
+- Any comparison: "对比XX和YY" → always multi-call → **Deep**
+- Any market overview: "XX市场分析" → always multi-call → **Deep**
+- Any trend: "XX趋势" → always multi-call → **Deep**
 
-**Default:** If unsure, classify as **Simple** (better to be fast than slow).
+**In practice, only these are Simple:**
+- Direct keyword search with no analysis: "搜XX素材", "找XX广告"
+- Direct ranking with no drill-down: "排行榜", "Top 10"
+- Filter-options or param lookups
+
+**Default:** If unsure, classify as **Deep** (prefer thorough over incomplete).
 
 **Execution paths:**
 
@@ -94,29 +101,95 @@ Deep signals (any match → Deep):
 - Chinese: `💡 需要更深入的分析？试试说"深度分析{topic}"`
 - English: `💡 Want deeper analysis? Try "deep research on {topic}"`
 
-**→ Deep path:** Check if `DEEP_RESEARCH_URL` is set: `[ -n "$DEEP_RESEARCH_URL" ] && echo "ok" || echo "missing"`
+**→ Deep path:** Call the Deep Research Framework.
 
-If set, call the Deep Research Framework:
+This is a 3-step process. Do NOT use `[[reply_to_current]]` until Step 3.
 
+**Step 1 — Submit the research task (returns instantly):**
+
+Run this exact command (only replace `{user_query}` and `{additional_context}`):
 ```bash
-curl -s -X POST "${DEEP_RESEARCH_URL}/research" \
+curl -s -X POST "https://deepresearch.admapix.com/research" \
   -H "Content-Type: application/json" \
-  -d '{
-    "query": "{user_query}",
-    "language": "{detected_language}",
-    "output_format": "auto",
-    "web_search": "fallback",
-    "max_depth": 3
-  }'
+  -H "Authorization: Bearer test-local-token-2026" \
+  -d '{"project": "admapix", "query": "{user_query}", "context": "{additional_context}", "api_key": "'"$ADMAPIX_API_KEY"'"}'
 ```
 
-**Processing framework response:**
-1. Extract `result.content` (Markdown report) and present directly to the user
-2. If `result.data_gaps` exists, note the limitations
-3. Append data source summary: API sources as endpoint names, web sources as clickable links with confidence
-4. Add follow-up hints based on the research content
+- `project` is always `"admapix"` — do NOT change this.
+- `query` is the user's research question (in the user's language).
+- `context` is optional — add useful context such as "用户是游戏公司，关注二次元赛道" if relevant. Omit or set to `null` if not needed.
+- `api_key` passes the user's API key to the framework — always include it as shown above.
 
-**If `DEEP_RESEARCH_URL` is not set:** Fall back to the existing Deep Dive logic (Step 2 → Deep Dive intent group).
+This returns immediately with:
+```json
+{"task_id": "dr_xxxx-xxxx-xxxx", "status": "pending", "created_at": "..."}
+```
+
+Extract the `task_id` value for Step 2.
+
+**Step 2 — Poll until done (use this exact script, do NOT modify):**
+
+Run this exact command, only replacing `{task_id}`:
+```bash
+while true; do r=$(curl -s "https://deepresearch.admapix.com/research/{task_id}" -H "Authorization: Bearer test-local-token-2026"); s=$(echo "$r" | grep -o '"status":"[^"]*"' | head -1 | cut -d'"' -f4); echo "status=$s"; if [ "$s" = "completed" ] || [ "$s" = "failed" ]; then echo "$r"; break; fi; sleep 15; done
+```
+
+This script polls every 15 seconds and exits only when the task is done. It may take 1-5 minutes. **Do NOT interrupt it, do NOT add a loop limit, do NOT abandon it.**
+
+- When it finishes, the last line contains the full JSON result. Proceed to Step 3.
+
+**Step 3 — Format and reply to the user with the framework's report.**
+
+**CRITICAL RULES:**
+- Do NOT send `[[reply_to_current]]` before Step 2 completes — it will stop execution.
+- **NEVER fall back to manual analysis.** The framework WILL complete — just wait for it.
+- **NEVER write your own polling loop.** Use the exact script above.
+
+**Processing the response JSON:**
+
+The completed response has this structure:
+```json
+{
+  "task_id": "dr_xxxx",
+  "status": "completed",
+  "output": {
+    "format": "html",
+    "files": [{"name": "report.html", "url": "https://deepresearch.admapix.com/files/{task_id}/report.html", ...}],
+    "summary": "- Temu近30天广告投放以拉美和东南亚为核心\n- 视频素材占比超过95%\n- ..."
+  },
+  "usage": {"model": "gpt-5.4", "total_tokens": 377289, "research_time_seconds": 125.2}
+}
+```
+
+Do NOT paste the full report into the chat. Instead:
+
+1. Take `output.summary` (already formatted as bullet points) and present it directly as the key findings
+2. Append the report link from `output.files[0].url`: `[📊 查看完整报告]({url})`
+3. Add follow-up hints based on the summary content
+
+**If the task failed** (status=`"failed"`):
+- The response will contain `"error": {"message": "..."}` with a user-friendly reason
+- Present the error to the user and suggest they try again or simplify their query
+- Do NOT try to manually replicate the analysis
+
+**Example output (Chinese):**
+```
+📊 深度分析完成！
+
+**核心发现：**
+- AFK Journey 近30天投放覆盖全球，美国、墨西哥、巴西为Top3市场
+- 视频素材占比约90%，图片约10%
+- 投放媒体位以休闲游戏和工具类App为主（Blockudoku、Backgammon等）
+- 2/18-2/23 与 3/14-3/16 出现投放峰值，可能对应版本更新或活动
+
+👉 [查看完整报告](https://deepresearch.admapix.com/files/dr_xxxx/report.html)
+
+💡 试试："和RAID对比" | "看看素材" | "日本市场详情"
+```
+
+**If Step 1 returns an error with `"code": "api_key_required"`:** The user's API key is missing or not configured. Output the same API key setup instructions from the "Check API Key" section above and stop.
+
+**If the framework is unreachable (connection refused/timeout on Step 1):** Fall back to the existing Deep Dive logic (Step 2 → Deep Dive intent group).
 
 ---
 

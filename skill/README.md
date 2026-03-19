@@ -13,6 +13,7 @@ All-in-one ad intelligence assistant. Search ad creatives, analyze apps, explore
 - **Ad Distribution** — Analyze where and how an app advertises (countries, media placements, creative formats)
 - **Market Analysis** — Industry-level insights by country, media channel, advertiser, and publisher
 - **Deep Dive** — Multi-dimensional reports combining all of the above
+- **Deep Research** — AI-powered deep analysis for complex queries (multi-app comparisons, market strategy reports, trend analysis). Automatically triggered for questions requiring 2+ API calls, returns structured HTML reports with key findings
 
 ## Install
 
@@ -42,6 +43,7 @@ After setup, just tell your AI assistant:
 | Ad Distribution | "Which countries does Temu advertise in?", "What ad channels does this game use?" |
 | Market Analysis | "Which country has the most game ads?", "Who are the top game advertisers?" |
 | Deep Dive | "Full ad strategy analysis for Temu", "Compare Temu and SHEIN" |
+| Deep Research | "Analyze Temu's ad strategy in Southeast Asia", "Compare top 5 casual games' ad performance" |
 
 Supports both **English** and **Chinese** — the assistant responds in your language.
 
