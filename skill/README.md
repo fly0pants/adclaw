@@ -47,6 +47,33 @@ After setup, just tell your AI assistant:
 
 Supports both **English** and **Chinese** — the assistant responds in your language.
 
+## Deep Research — AI-Powered Intelligence Reports
+
+For complex analytical queries, AdMapix automatically activates its **Deep Research Framework** — a server-side AI research engine that goes far beyond simple API lookups.
+
+**How it works:**
+
+1. The skill classifies your query by complexity. Simple lookups (single search, single ranking) are handled directly. Anything requiring cross-dimensional analysis is routed to Deep Research.
+2. The research engine autonomously plans and executes a multi-step investigation — orchestrating dozens of API calls, cross-referencing data sources, and synthesizing findings.
+3. Results are delivered as a structured HTML report with key findings summary, ready for sharing or further analysis.
+
+**What triggers Deep Research:**
+
+- Multi-app comparisons: *"Compare Temu, SHEIN, and Wish's ad strategies"*
+- Strategy analysis: *"How is this game acquiring users in Japan?"*
+- Market intelligence: *"Southeast Asia casual game ad market overview"*
+- Trend interpretation: *"Why did this app's downloads spike last week?"*
+- Any question requiring 2+ API calls or cross-entity reasoning
+
+**What you get:**
+
+- Structured HTML report with charts and data tables
+- Executive summary with key findings
+- Cross-dimensional insights (geo × media × creative × time)
+- Actionable recommendations based on competitive data
+
+The framework typically completes in 1–5 minutes depending on query complexity. Reports are hosted and shareable via link.
+
 ## Links
 
 - Website: [www.admapix.com](https://www.admapix.com)
