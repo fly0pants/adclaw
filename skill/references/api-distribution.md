@@ -98,13 +98,50 @@ Returns which distribute dimensions are available per content type. This is for 
 
 ```json
 {
-  "creative": ["media", "adfaction", "app"],
-  "imagevideo": ["media", "adfaction", "app", "country"],
-  "preplay": ["media", "adfaction", "app"],
-  "demoad": ["media", "adfaction", "app"],
-  "document": ["media", "adfaction", "app"]
+  "creative": ["media", "advertiser", "app"],
+  "imagevideo": ["media", "advertiser", "app", "country"],
+  "preplay": ["media", "advertiser", "app"],
+  "demoad": ["media", "advertiser", "app"],
+  "document": ["media", "advertiser", "app"]
 }
 ```
+
+---
+
+## 3. Global Promote — 全局推广分布
+
+`POST /api/data/global-promote`
+
+Analyze the global promotion distribution for one or more products across countries, media, or advertisers.
+
+### Request Body
+
+```json
+{
+  "ids": ["product_id_1", "product_id_2"],
+  "dim": "country",
+  "keyword": "",
+  "sort_field": "15",
+  "sort_rule": "desc"
+}
+```
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| ids | string[] | required | Product IDs (non-empty array) |
+| dim | string | "country" | Dimension: `country`, `media`, or `adfaction` |
+| keyword | string | "" | Optional keyword filter |
+| sort_field | string | "15" | Sort field ("15"=impressions) |
+| sort_rule | string | "desc" | Sort direction |
+
+### Response
+
+Returns distribution data for the specified dimension. Structure varies by `dim`.
+
+### Difference from app-distribution
+
+- **app-distribution** — Analyzes a single app's ad placement distribution (where/how it advertises)
+- **global-promote** — Analyzes one or more products' promotion footprint across the global market (country/media/advertiser breakdown)
 
 ---
 

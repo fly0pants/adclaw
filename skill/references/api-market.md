@@ -43,7 +43,7 @@ Analyze the advertising market from 5 different dimensions. Provides macro-level
 | ad_company_location | string[] | [] | Advertiser company location filter |
 | traffic_company_location | string[] | [] | Publisher/traffic source location filter |
 | page | int | 1 | Page number |
-| page_size | int | 20 | Results per page (1-200) |
+| page_size | int | 20 | Results per page (1-100) |
 
 ### Dimensions (class_type)
 

@@ -30,10 +30,13 @@ Fetch App Store / Google Play official rankings.
 | market | string | "appstore" | `appstore` or `googleplay` |
 | rank_type | string | "free" | `free`, `paid`, `grossing` |
 | cat_type | string | "game" | `game` or `app` |
-| cat_code | string | "games" | Category code (from store-categories API) |
-| country | string[] | ["US"] | Country codes |
+| cat_code | string | "games" | Category code (from store-categories API). App Store uses lowercase (e.g. "games"), Google Play uses uppercase (e.g. "GAME") |
+| country | string[] | ["US"] | Country codes (required, non-empty) |
 | page | int | 1 | Page number |
-| page_size | int | 20 | Results per page (1-200) |
+| page_size | int | 20 | Results per page (1-100) |
+| date | string | "" | Ranking date (YYYY-MM-DD). Omit for latest. |
+| compare_date | string | "" | Compare date for trend comparison |
+| is_compare | int | 0 | Enable comparison: 0=off, 1=on |
 
 ### Response
 
@@ -82,6 +85,8 @@ Unified endpoint for 6 ranking types based on ad intelligence data.
 ```json
 {
   "rank_type": "promotion",
+  "category_id": "6014",
+  "date_type": 1,
   "page": 1,
   "page_size": 50,
   "start_date": "",
@@ -96,10 +101,12 @@ Unified endpoint for 6 ranking types based on ad intelligence data.
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | rank_type | string | required | See ranking types below |
+| category_id | string | "6014" | Industry category filter. "6014" = all categories. Use tradeLevel1 codes for specific industries: "601" = app, "602" = game. Can also use tradeLevel2/3 codes for finer filtering |
+| date_type | int | 1 | Date range type: 1 = last 30 days, 2 = last 7 days, 3 = last 3 days |
 | page | int | 1 | Page number |
-| page_size | int | 50 | Results per page (1-200) |
-| start_date | string | 30 days ago | YYYY-MM-DD |
-| end_date | string | today | YYYY-MM-DD |
+| page_size | int | 50 | Results per page (1-100) |
+| start_date | string | 30 days ago | YYYY-MM-DD (overrides date_type if set) |
+| end_date | string | today | YYYY-MM-DD (overrides date_type if set) |
 | country | string[] | [] | Country filter |
 | sort_field | string | varies | Sort field (default varies by rank_type) |
 | sort_rule | string | "desc" | Sort direction |
@@ -179,12 +186,15 @@ Similar flat structure to download, with revenue-specific fields.
 
 **promotion** — Ranks apps by advertising intensity. "Which apps are spending the most on ads?"
 - Supports `day_mode`: "D3" (3 days), "D7" (7 days), "D30" (30 days)
+- Advanced filter params (optional): `keyword`, `trade_level1/2/3`, `subject_type`, `topic_type`, `product_model`, `product_type`, `selling`, `monetization`, `pay_type`, `company_location`, `campaign_list`, `media_ids`, `device`
 
 **download** — Ranks apps by estimated download volume. "Which apps are downloaded the most?"
 - Includes auto-calculated compare period for growth calculation
+- Advanced filter params (optional): `trade_level1/2/3`, `subject_type`, `topic_type`, `product_model`, `product_type`, `selling`, `monetization`, `pay_type`, `company_location`, `media_ids`, `device`
 - ⚠️ Download/revenue figures are third-party estimates
 
 **revenue** — Ranks apps by estimated revenue. "Which apps earn the most?"
+- Same advanced filter params as download
 - ⚠️ Revenue figures are third-party estimates
 
 **newapp** — Tracks newly launched apps. "What new apps just launched?"

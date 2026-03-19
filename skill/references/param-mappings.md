@@ -103,5 +103,5 @@
 |---|---|---|
 | default | 默认 | 20 |
 | show more | 多看一些 | 40 |
-| maximum | 最多 | 60 (limit) |
+| lots / maximum | 多看 / 最多 | 100 (limit) |
 | show fewer / brief | 少看几条 / 简要 | 10 |
