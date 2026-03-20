@@ -244,11 +244,16 @@ Read the user's request and classify into one of these intent groups. Then **rea
 
 | Mode | Signal | Behavior |
 |---|---|---|
-| **Browse** | "搜一下", "search", "find", vague exploration | Single query, `generate_page: true`, return H5 link + summary |
+| **Browse** | "搜", "搜一下", "找", "找一下", "看看", "search", "find", "show me", or any creative/material search without analytical intent | Single query, **must set `generate_page: true`**, return H5 link + summary |
 | **Analyze** | "分析", "哪家最火", "top", "趋势", "why" | Query + structured analysis, `generate_page: false` |
 | **Compare** | "对比", "vs", "区别", "compare" | Multiple queries, side-by-side comparison |
 
-Default to **Analyze** when uncertain.
+**Default for Creative Search intent: Browse.** Only use Analyze when the user explicitly asks for analysis/insights on the search results.
+
+**Browse mode rules:**
+- **MUST** set `generate_page: true` in the API request — this generates an H5 page where users can visually browse and preview creatives
+- The H5 page is the primary result — it provides a much better experience than listing raw data in chat
+- Do NOT list individual creatives in chat text — instead provide the H5 link and a brief summary (total count, top advertiser, creative type breakdown)
 
 ### Step 4: Plan & Execute
 
