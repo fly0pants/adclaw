@@ -61,15 +61,7 @@ npx clawhub install admapix
 **方式二：从 GitHub 安装**
 
 ```bash
-npx clawhub install fly0pants/admapix
-```
-
-**方式三：手动安装**
-
-```bash
-git clone https://github.com/fly0pants/admapix.git
-cd admapix
-npx clawhub install .
+git clone https://github.com/fly0pants/admapix.git ~/.openclaw/skills/admapix
 ```
 
 ### 配置
