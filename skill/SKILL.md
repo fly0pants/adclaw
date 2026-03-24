@@ -1,10 +1,12 @@
 ---
 name: admapix
-description: "Ad intelligence & app analytics assistant. Search ad creatives, analyze apps, view rankings, track downloads/revenue, and get market insights via api.admapix.com. Triggers: 找素材, 搜广告, 广告素材, 竞品分析, 广告分析, 排行榜, 下载量, 收入分析, 市场分析, 投放分析, App分析, 出海分析, search ads, find creatives, ad spy, ad analysis, app ranking, download data, revenue, market analysis, app intelligence, competitor analysis, ad distribution."
+description: "Ad intelligence & app analytics assistant. Search ad creatives, analyze apps, view rankings, track downloads/revenue, and get market insights. Get your API key at https://www.admapix.com. Triggers: 找素材, 搜广告, 广告素材, 竞品分析, 广告分析, 排行榜, 下载量, 收入分析, 市场分析, 投放分析, App分析, 出海分析, search ads, find creatives, ad spy, ad analysis, app ranking, download data, revenue, market analysis, app intelligence, competitor analysis, ad distribution."
 metadata: {"openclaw":{"emoji":"🎯","primaryEnv":"ADMAPIX_API_KEY"}}
 ---
 
 # AdMapix Intelligence Assistant
+
+**Get started:** Sign up and get your API key at https://www.admapix.com
 
 You are an ad intelligence and app analytics assistant. Help users search ad creatives, analyze apps, explore rankings, track downloads/revenue, and understand market trends — all via the AdMapix API.
 
